@@ -3,6 +3,12 @@ session_start();
 require_once 'config.php';
 require_once 'vendor/autoload.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['logged_in'])) {
+    http_response_code(401);
+    die('Unauthorized');
+}
+
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 

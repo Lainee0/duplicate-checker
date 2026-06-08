@@ -3,6 +3,13 @@ session_start();
 require_once 'config.php';
 require_once 'vendor/autoload.php'; // For PhpSpreadsheet
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['logged_in'])) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized']);
+    exit;
+}
+
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 header('Content-Type: application/json');
@@ -313,6 +320,4 @@ function formatDate($date) {
     return null;
 }
 
-// Add currentCheckId for JavaScript
-echo "<script>var currentCheckId = " . ($_SESSION['last_check_id'] ?? 0) . ";</script>";
 ?>

@@ -34,6 +34,24 @@ CREATE TABLE IF NOT EXISTS duplicate_records (
     FOREIGN KEY (check_id) REFERENCES check_history(id) ON DELETE CASCADE
 );
 
+-- Table for user authentication
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    role ENUM('admin', 'user') DEFAULT 'user',
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert default admin user (username: admin, password: admin123)
+INSERT INTO users (username, email, password, first_name, last_name, role) 
+VALUES ('admin', 'admin@duplichecker.local', '$2y$10$Y9jH8Kqj2L5mN3P0X6V2e.8Q4F1W5A9S3D7G2H6K9M1B4C7R0N3E', 'Admin', 'User', 'admin');
+
 -- Indexes for better performance
 CREATE INDEX idx_name ON received_beneficiaries(name);
 CREATE INDEX idx_barangay ON received_beneficiaries(barangay);

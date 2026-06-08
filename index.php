@@ -2,6 +2,12 @@
 session_start();
 require_once 'config.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['logged_in'])) {
+    header("Location: login.php");
+    exit;
+}
+
 // Get statistics
 try {
     $pdo = getConnection();
@@ -59,9 +65,9 @@ try {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link" data-page="import-master">
+                        <a href="#" class="nav-link" id="openImportModal" data-bs-toggle="modal" data-bs-target="#importModal">
                             <i class="bi bi-upload"></i>
-                            <span>Import Master List</span>
+                            <span>Import List</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -103,8 +109,8 @@ try {
                         <i class="bi bi-person-circle"></i>
                     </div>
                     <div class="user-details">
-                        <span class="user-name">Admin User</span>
-                        <span class="user-role">Administrator</span>
+                        <span class="user-name"><?php echo htmlspecialchars(($_SESSION['first_name'] ?? '') . ' ' . ($_SESSION['last_name'] ?? '')); ?></span>
+                        <span class="user-role"><?php echo ucfirst(htmlspecialchars($_SESSION['role'] ?? 'User')); ?></span>
                     </div>
                 </div>
             </div>
@@ -172,10 +178,11 @@ try {
                                     </div>
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end">
+                                    <div class="dropdown-header">Logged in as: <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong></div>
                                     <a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a>
                                     <a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a>
                                     <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                                    <a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a>
                                 </div>
                             </div>
                         </div>
@@ -222,6 +229,17 @@ try {
                                 </div>
                             </div>
                         </div>
+                        <div class="col-xl-3 col-md-6">
+                            <div class="stats-card gradient-2">
+                                <div class="stats-icon">
+                                    <i class="bi bi-check2-all"></i>
+                                </div>
+                                <div class="stats-info">
+                                    <h3><?php echo number_format($stats['total_checks']); ?></h3>
+                                    <p>Total Checks</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Charts Row -->
@@ -241,7 +259,7 @@ try {
                                 </div>
                             </div>
                         </div> -->
-                        <div class="col-lg-6">
+                        <div class="col-lg-6" style="width: 66%;">
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="mb-0">Quick Actions</h5>
@@ -249,28 +267,28 @@ try {
                                 <div class="card-body">
                                     <div class="row g-3">
                                         <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('import-master')" style="background: #A4A9D0;">
+                                            <button class="btn w-100 p-4 quick-action-btn" data-bs-toggle="modal" data-bs-target="#importModal" style="background: #F0EFFF;">
                                                 <i class="bi bi-upload display-6 mb-2"></i>
-                                                <h6>Import Master List</h6>
+                                                <h6>Import List</h6>
                                                 <small>Upload received beneficiaries</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('check-duplicates')" style="background: #A4A9D0;">
+                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('check-duplicates')" style="background: #F0EFFF;">
                                                 <i class="bi bi-search display-6 mb-2"></i>
                                                 <h6>Check Duplicates</h6>
                                                 <small>Upload new list to verify</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('results')" style="background: #A4A9D0;">
+                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('results')" style="background: #F0EFFF;">
                                                 <i class="bi bi-file-earmark-text display-6 mb-2"></i>
                                                 <h6>View Results</h6>
                                                 <small>Check previous results</small>
                                             </button>
                                         </div>
                                         <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('reports')" style="background: #A4A9D0;">
+                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('reports')" style="background: #F0EFFF;">
                                                 <i class="bi bi-file-earmark-bar-graph display-6 mb-2"></i>
                                                 <h6>Generate Report</h6>
                                                 <small>Export detailed reports</small>
@@ -302,9 +320,9 @@ try {
                                 <div class="card-body">
                                     <div class="row g-3">
                                         <div class="col-6">
-                                            <button class="btn btn-primary w-100 p-4 quick-action-btn" onclick="switchPage('import-master')">
+                                            <button class="btn btn-primary w-100 p-4 quick-action-btn" data-bs-toggle="modal" data-bs-target="#importModal">
                                                 <i class="bi bi-upload display-6 mb-2"></i>
-                                                <h6>Import Master List</h6>
+                                                <h6>Import List</h6>
                                                 <small>Upload received beneficiaries</small>
                                             </button>
                                         </div>
@@ -333,11 +351,11 @@ try {
                                 </div>
                             </div>
                         </div> -->
-                        <div class="col-lg-6">
+                        <div class="col-lg-6" style="width: 100%;">
                             <div class="card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">Recent Checks</h5>
-                                    <button class="btn btn-sm btn-primary">View All</button>
+                                    <button class="btn btn-sm btn-primary" style="background: #2D3250; border-color: #2D3250;">View All</button>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="table-responsive">
@@ -358,19 +376,23 @@ try {
                                                         "SELECT * FROM check_history ORDER BY check_date DESC LIMIT 5"
                                                     )->fetchAll();
                                                     
-                                                    foreach ($recent as $record) {
-                                                        $status = $record['duplicates_found'] > 0 ? 'Flagged' : 'Clean';
-                                                        $badgeClass = $record['duplicates_found'] > 0 ? 'bg-danger' : 'bg-success';
-                                                        
-                                                        echo "<tr>";
-                                                        echo "<td>" . htmlspecialchars($record['batch_name'] ?? 'N/A') . "</td>";
-                                                        echo "<td>" . date('M d, Y', strtotime($record['check_date'])) . "</td>";
-                                                        echo "<td><span class='badge $badgeClass'>" . $record['duplicates_found'] . "</span></td>";
-                                                        echo "<td><span class='badge $badgeClass'>$status</span></td>";
-                                                        echo "</tr>";
+                                                    if (empty($recent)) {
+                                                        echo "<tr><td colspan='4' class='text-center text-muted py-4'>No results to display</td></tr>";
+                                                    } else {
+                                                        foreach ($recent as $record) {
+                                                            $status = $record['duplicates_found'] > 0 ? 'Flagged' : 'Clean';
+                                                            $badgeClass = $record['duplicates_found'] > 0 ? 'bg-danger' : 'bg-success';
+                                                            
+                                                            echo "<tr>";
+                                                            echo "<td>" . htmlspecialchars($record['batch_name'] ?? 'N/A') . "</td>";
+                                                            echo "<td>" . date('M d, Y', strtotime($record['check_date'])) . "</td>";
+                                                            echo "<td><span class='badge $badgeClass'>" . $record['duplicates_found'] . "</span></td>";
+                                                            echo "<td><span class='badge $badgeClass'>$status</span></td>";
+                                                            echo "</tr>";
+                                                        }
                                                     }
                                                 } catch (Exception $e) {
-                                                    echo "<tr><td colspan='4' class='text-center'>No data available</td></tr>";
+                                                    echo "<tr><td colspan='4' class='text-center text-muted py-4'>No data available</td></tr>";
                                                 }
                                                 ?>
                                             </tbody>
@@ -382,87 +404,70 @@ try {
                     </div>
                 </div>
 
-                <!-- Import Master List Page -->
+                <!-- Import List Page (now opens modal) -->
                 <div class="page" id="import-master-page">
                     <div class="row g-4">
                         <div class="col-lg-6">
                             <div class="card">
                                 <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="bi bi-upload"></i> Import Master List</h5>
+                                    <h5 class="mb-0"><i class="bi bi-upload"></i> Import List</h5>
                                 </div>
-                                <div class="card-body">
-                                    <form id="masterListForm" enctype="multipart/form-data">
-                                        <div class="mb-3">
-                                            <label class="form-label">Select Excel File</label>
-                                            <div class="file-upload-wrapper">
-                                                <div class="file-upload-area" id="masterDropZone">
-                                                    <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
-                                                    <h5>Drag & Drop your file here</h5>
-                                                    <p class="text-muted">or click to browse</p>
-                                                    <input type="file" class="file-input" id="masterFile" name="masterFile" accept=".xlsx,.xls" required>
-                                                </div>
-                                                <div class="file-info mt-2" id="masterFileInfo" style="display: none;">
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <i class="bi bi-file-earmark-excel text-success"></i>
-                                                        <span id="masterFileName"></span>
-                                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile('master')">
-                                                            <i class="bi bi-x"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="batchName" class="form-label">Batch Name (Optional)</label>
-                                            <input type="text" class="form-control" id="batchName" name="batchName" 
-                                                   placeholder="e.g., January 2024 Payout">
-                                        </div>
-                                        <button type="submit" class="btn btn-primary w-100">
-                                            <i class="bi bi-cloud-upload"></i> Import Master List
-                                        </button>
-                                    </form>
-                                    <div id="masterUploadStatus" class="mt-3"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="card">
-                                <div class="card-header bg-info text-white">
-                                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Instructions</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="instruction-list">
-                                        <div class="instruction-item">
-                                            <div class="instruction-number">1</div>
-                                            <div class="instruction-text">
-                                                <h6>Prepare Your Excel File</h6>
-                                                <p>Ensure your Excel file has the following columns: <strong>Name</strong>, <strong>Barangay</strong>, <strong>Birthday</strong></p>
-                                            </div>
-                                        </div>
-                                        <div class="instruction-item">
-                                            <div class="instruction-number">2</div>
-                                            <div class="instruction-text">
-                                                <h6>Upload Master List</h6>
-                                                <p>This should contain all beneficiaries who have already received assistance</p>
-                                            </div>
-                                        </div>
-                                        <div class="instruction-item">
-                                            <div class="instruction-number">3</div>
-                                            <div class="instruction-text">
-                                                <h6>Review Import</h6>
-                                                <p>Check the import status and verify the number of records imported</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="alert alert-warning mt-3">
-                                        <i class="bi bi-exclamation-triangle"></i>
-                                        <strong>Note:</strong> Duplicate entries within the master list will be automatically skipped.
-                                    </div>
+                                <div class="card-body text-center">
+                                    <p class="mb-3">Import master lists using the modal interface.</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+                                        <i class="bi bi-cloud-upload"></i> Open Import Modal
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Import Modal -->
+                <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+                  <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="importModalLabel"><i class="bi bi-upload"></i> Import Master List</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <form id="masterListForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label class="form-label">Select Excel File</label>
+                                <div class="file-upload-wrapper">
+                                    <div class="file-upload-area" id="masterDropZone">
+                                        <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
+                                        <h5>Drag & Drop your file here</h5>
+                                        <p class="text-muted">or click to browse</p>
+                                        <input type="file" class="file-input" id="masterFile" name="masterFile" accept=".xlsx,.xls" required>
+                                    </div>
+                                    <div class="file-info mt-2" id="masterFileInfo" style="display: none;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-file-earmark-excel text-success"></i>
+                                            <span id="masterFileName"></span>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile('master')">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="batchName" class="form-label">Batch Name (Optional)</label>
+                                <input type="text" class="form-control" id="batchName" name="batchName" placeholder="e.g., January 2024 Payout">
+                            </div>
+                        </form>
+                        <div id="masterUploadStatus" class="mt-3"></div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="importModalSubmit">
+                            <i class="bi bi-cloud-upload"></i> Import List
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Check Duplicates Page -->
@@ -546,7 +551,7 @@ try {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-5">
+                        <!-- <div class="col-lg-5">
                             <div class="card">
                                 <div class="card-header bg-dark text-white">
                                     <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Tips</h5>
@@ -570,7 +575,7 @@ try {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
 

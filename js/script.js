@@ -1,3 +1,5 @@
+var currentCheckId = 0;
+
 $(document).ready(function() {
     // Sidebar Toggle
     $('#sidebarCollapse, #sidebarToggle').on('click', function() {
@@ -59,6 +61,23 @@ $(document).ready(function() {
         });
     });
 
+    // Modal submit for Import Master List (footer button)
+    $('#importModalSubmit').on('click', function() {
+        $('#masterListForm').submit();
+    });
+
+    // Clear modal state when closed
+    var importModalEl = document.getElementById('importModal');
+    if (importModalEl) {
+        importModalEl.addEventListener('hidden.bs.modal', function () {
+            $('#masterUploadStatus').html('');
+            $('#masterFile').val('');
+            $('#masterFileInfo').hide();
+            $('#masterFileName').text('');
+            $('#batchName').val('');
+        });
+    }
+
     // Check Duplicates
     $('#checkDuplicatesForm').on('submit', function(e) {
         e.preventDefault();
@@ -80,6 +99,7 @@ $(document).ready(function() {
             contentType: false,
             success: function(response) {
                 if (response.success) {
+                    currentCheckId = response.data.check_id || 0;
                     displayResults(response.data);
                     showAlert('checkStatus', 'success', 
                         '<i class="bi bi-check-circle"></i> Check completed successfully!');
@@ -155,7 +175,7 @@ function initCharts() {
         new Chart(barangayCtx, {
             type: 'doughnut',
             data: {
-                labels: ['San Jose', 'Santa Rosa', 'San Pedro', 'Others'],
+                labels: ['Sample', 'Sample', 'Sample', 'Others'],
                 datasets: [{
                     data: [30, 25, 20, 25],
                     backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe']
