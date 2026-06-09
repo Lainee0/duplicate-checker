@@ -750,6 +750,16 @@ try {
         // Single table view of all duplicates
         if (data.duplicates && data.duplicates.length > 0) {
             html += `
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input id="duplicateSearchInput" type="text" class="form-control" placeholder="Search duplicates by name, barangay, birthday or batch reference">
+                            <button class="btn btn-primary" type="button" onclick="filterDuplicateResults()">Search</button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="resetDuplicateSearch()">Reset</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle-fill"></i> 
                     Found <strong>${data.duplicates.length}</strong> potential duplicate(s). Review each record below.
@@ -794,7 +804,7 @@ try {
                     <tr id="duplicate-row-${dup.id}" class="${rowClass}">
                         <td><input type="checkbox" class="duplicate-checkbox" value="${dup.id}"></td>
                         <td>${index + 1}${dup.match_details === 'Original record (has high-confidence duplicates)' ? ' <span class="badge bg-warning">Original</span>' : ''}</td>
-                        <td><strong>${escapeHtml(dup.full_name)}</strong> <br><small class="text-muted">${escapeHtml(dup.match_details)}</small></td>
+                        <td><strong>${escapeHtml(dup.full_name)}</strong></td>
                         <td>${escapeHtml(dup.barangay)}</td>
                         <td>${escapeHtml(dup.birthday)}</td>
                         <td><span class="badge bg-secondary">${escapeHtml(dup.batch_reference)}</span></td>
@@ -861,6 +871,7 @@ try {
         }
         
         $('#duplicateCheckResults').html(html);
+        currentDuplicatesData = data;
         
         // Store results in localStorage
         if (data.duplicates) {
@@ -869,6 +880,24 @@ try {
         if (data.clean_records_data) {
             localStorage.setItem('cleanRecords', JSON.stringify(data.clean_records_data));
         }
+    }
+
+    function filterDuplicateResults() {
+        var query = $('#duplicateSearchInput').val().trim().toLowerCase();
+        if (!query) {
+            resetDuplicateSearch();
+            return;
+        }
+
+        $('#duplicatesTable tbody tr').each(function() {
+            var rowText = $(this).text().toLowerCase();
+            $(this).toggle(rowText.indexOf(query) !== -1);
+        });
+    }
+
+    function resetDuplicateSearch() {
+        $('#duplicateSearchInput').val('');
+        $('#duplicatesTable tbody tr').show();
     }
 
     // Accept a single record as clean
