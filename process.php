@@ -70,9 +70,13 @@ function handleMasterImport() {
     $nameCol = array_search('name', $headers);
     $barangayCol = array_search('barangay', $headers);
     $birthdayCol = array_search('birthday', $headers);
+    $assistanceReceiveCol = array_search('assistance receive', $headers);
+    if ($assistanceReceiveCol === false) {
+        $assistanceReceiveCol = array_search('assistance_receive', $headers);
+    }
     
-    if ($nameCol === false || $barangayCol === false || $birthdayCol === false) {
-        throw new Exception('Missing required columns. File must contain: Name, Barangay, Birthday');
+    if ($nameCol === false || $barangayCol === false || $birthdayCol === false || $assistanceReceiveCol === false) {
+        throw new Exception('Missing required columns. File must contain: Name, Barangay, Birthday, Assistance Receive');
     }
     
     // Process data
@@ -91,15 +95,19 @@ function handleMasterImport() {
             $row = $data[$i];
             
             // Skip empty rows
-            if (empty($row[$nameCol]) && empty($row[$barangayCol]) && empty($row[$birthdayCol])) {
+            if (empty($row[$nameCol]) && empty($row[$barangayCol]) && empty($row[$birthdayCol]) && empty($row[$assistanceReceiveCol])) {
                 continue;
             }
             
             $name = strtoupper(trim($row[$nameCol]));
             $barangay = strtoupper(trim($row[$barangayCol]));
             $birthday = formatDate($row[$birthdayCol]);
+            $assistanceReceive = strtoupper(trim($row[$assistanceReceiveCol]));
+            if ($assistanceReceive === '') {
+                $assistanceReceive = strtoupper(trim($batchName));
+            }
             
-            if ($stmt->execute([$name, $barangay, $birthday, $batchName])) {
+            if ($stmt->execute([$name, $barangay, $birthday, $assistanceReceive])) {
                 $imported++;
             }
         }
@@ -158,12 +166,12 @@ function handleDuplicateCheck() {
     foreach ($records as $record) {
         $keyParts = [];
         if ($matchName) {
-            $keyParts[] = $fuzzyMatch ? soundex($record['name']) : $record['name'];
+            $keyParts[] = $record['name'];
         }
-        if ($matchBarangay) {
+        if ($matchBarangay && !$matchName) {
             $keyParts[] = $record['barangay'];
         }
-        if ($matchBirthday) {
+        if ($matchBirthday && !$matchName) {
             $keyParts[] = $record['birthday'];
         }
         $key = implode('||', $keyParts);
@@ -173,12 +181,12 @@ function handleDuplicateCheck() {
     $duplicates = [];
     $matchTypeParts = [];
     if ($matchName) {
-        $matchTypeParts[] = $fuzzyMatch ? 'Fuzzy Name' : 'Name';
+        $matchTypeParts[] = 'Name';
     }
-    if ($matchBarangay) {
+    if ($matchBarangay && !$matchName) {
         $matchTypeParts[] = 'Barangay';
     }
-    if ($matchBirthday) {
+    if ($matchBirthday && !$matchName) {
         $matchTypeParts[] = 'Birthday';
     }
     $matchTypeLabel = implode(' + ', $matchTypeParts);

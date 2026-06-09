@@ -1,4 +1,9 @@
 var currentCheckId = 0;
+var currentDuplicateResults = [];
+var currentResultsSort = {
+    column: 'name',
+    order: 'asc'
+};
 
 $(document).ready(function() {
     // Sidebar Toggle
@@ -269,24 +274,21 @@ function displayResults(data) {
         </div>
     `;
     $('#resultSummary').html(summary);
-    
+
+    currentDuplicateResults = Array.isArray(data.duplicates) ? data.duplicates.slice() : [];
+    currentResultsSort = {
+        column: 'name',
+        order: 'asc'
+    };
+    updateSortHeaders();
+    renderResultsTable();
+}
+
+function renderResultsTable() {
     const tbody = $('#resultsBody');
     tbody.empty();
-    
-    if (data.duplicates.length > 0) {
-        data.duplicates.forEach((record, index) => {
-            tbody.append(`
-                <tr class="duplicate">
-                    <td>${index + 1}</td>
-                    <td><strong>${record.name}</strong></td>
-                    <td>${record.barangay}</td>
-                    <td>${record.birthday}</td>
-                    <td><span class="badge bg-danger">DUPLICATE</span></td>
-                    <td>${record.match_type}</td>
-                </tr>
-            `);
-        });
-    } else {
+
+    if (!currentDuplicateResults.length) {
         tbody.append(`
             <tr>
                 <td colspan="6" class="text-center text-success py-5">
@@ -296,6 +298,80 @@ function displayResults(data) {
                 </td>
             </tr>
         `);
+        return;
+    }
+
+    const records = currentDuplicateResults.slice();
+    records.sort((a, b) => compareResults(a, b, currentResultsSort.column, currentResultsSort.order));
+
+    records.forEach((record, index) => {
+        tbody.append(`
+            <tr class="duplicate">
+                <td>${index + 1}</td>
+                <td><strong>${record.name || ''}</strong></td>
+                <td>${record.barangay || ''}</td>
+                <td>${record.birthday || ''}</td>
+                <td><span class="badge bg-danger">DUPLICATE</span></td>
+                <td>${record.match_type || ''}</td>
+            </tr>
+        `);
+    });
+}
+
+function compareResults(a, b, column, order) {
+    const valueA = String(a[column] || '').trim().toLowerCase();
+    const valueB = String(b[column] || '').trim().toLowerCase();
+    let comparison = 0;
+
+    if (column === 'birthday') {
+        const dateA = new Date(a[column] || '');
+        const dateB = new Date(b[column] || '');
+        comparison = dateA - dateB;
+    } else if (column === 'status') {
+        comparison = valueA.localeCompare(valueB);
+    } else {
+        comparison = valueA.localeCompare(valueB);
+    }
+
+    return order === 'asc' ? comparison : -comparison;
+}
+
+function toggleSortResults(column) {
+    if (currentResultsSort.column === column) {
+        currentResultsSort.order = currentResultsSort.order === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentResultsSort.column = column;
+        currentResultsSort.order = 'asc';
+    }
+    updateSortHeaders();
+    renderResultsTable();
+}
+
+function updateSortHeaders() {
+    $('th.sortable').removeClass('sorted-asc sorted-desc');
+    const activeHeader = $(`th.sortable[data-sort="${currentResultsSort.column}"]`);
+    if (activeHeader.length) {
+        activeHeader.addClass(currentResultsSort.order === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    }
+    updateSortButtonText();
+}
+
+function updateSortButtonText() {
+    const button = $('#sortNameBtn');
+    if (!button.length) {
+        return;
+    }
+
+    const direction = currentResultsSort.order === 'asc' ? 'A → Z' : 'Z → A';
+    button.html(`
+        <i class="bi bi-arrow-down-up me-1"></i>
+        Sort by Name ${direction}
+    `);
+
+    if (currentResultsSort.column === 'name') {
+        button.removeClass('btn-outline-secondary').addClass('btn-outline-primary');
+    } else {
+        button.removeClass('btn-outline-primary').addClass('btn-outline-secondary');
     }
 }
 

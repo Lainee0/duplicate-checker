@@ -64,8 +64,6 @@ function scanDuplicates($params) {
     try {
         $pdo = getConnection();
         
-        // High confidence threshold - only show 90% and above
-        $similarityThreshold = 90;
         $batchReference = $params['batch_reference'] ?? null;
         
         // Build query for beneficiaries - only get records that are NOT marked as accepted
@@ -110,11 +108,11 @@ function scanDuplicates($params) {
             $batchRef = $beneficiaries[0]['batch_reference'] ?? 'Unknown';
         }
         
-        // Find high-confidence duplicates (90% and above)
+        // Find duplicates only for matching normalized names
         $duplicates = [];
         $cleanRecords = [];
-        $processedNames = [];
         $acceptedIds = [];
+        $nameGroups = [];
         
         // First, get IDs of records already accepted as clean
         try {
@@ -129,154 +127,55 @@ function scanDuplicates($params) {
         }
         
         foreach ($beneficiaries as $beneficiary) {
-            // Skip if already accepted as clean
             if (in_array($beneficiary['id'], $acceptedIds)) {
                 continue;
             }
-            
+
             $originalName = trim($beneficiary['full_name'] ?? $beneficiary['name'] ?? '');
-            if (empty($originalName)) continue;
-            
-            // Normalize name for better comparison
+            if (empty($originalName)) {
+                continue;
+            }
+
             $normalizedName = normalizeName($originalName);
-            
-            $matchFound = false;
-            $bestMatchLevel = 0;
-            $bestMatchId = null;
-            $bestMatchDetails = '';
-            
-            // Check against previously processed names
-            foreach ($processedNames as $existingId => $existingData) {
-                // Skip if existing record is accepted as clean
-                if (in_array($existingId, $acceptedIds)) {
-                    continue;
-                }
-                
-                $existingName = $existingData['normalized'];
-                
-                // Calculate similarity percentage
-                similar_text(strtolower($normalizedName), strtolower($existingName), $percent);
-                
-                // Check first name and last name separately
-                $firstName1 = getFirstName($normalizedName);
-                $lastName1 = getLastName($normalizedName);
-                $firstName2 = getFirstName($existingName);
-                $lastName2 = getLastName($existingName);
-                
-                // Calculate weighted score - first name is more important
-                $firstNameSimilarity = 0;
-                $lastNameSimilarity = 0;
-                
-                if (!empty($firstName1) && !empty($firstName2)) {
-                    similar_text($firstName1, $firstName2, $firstNamePercent);
-                    $firstNameSimilarity = $firstNamePercent;
-                }
-                
-                if (!empty($lastName1) && !empty($lastName2)) {
-                    similar_text($lastName1, $lastName2, $lastNamePercent);
-                    $lastNameSimilarity = $lastNamePercent;
-                }
-                
-                // Weighted score: First name 70%, Last name 30%
-                $weightedScore = ($firstNameSimilarity * 0.7) + ($lastNameSimilarity * 0.3);
-                
-                // Use the higher of the two similarity measurements
-                $finalPercent = max($percent, $weightedScore);
-                
-                if ($finalPercent >= $similarityThreshold) {
-                    $matchFound = true;
-                    if ($finalPercent > $bestMatchLevel) {
-                        $bestMatchLevel = round($finalPercent);
-                        $bestMatchId = $existingId;
-                        
-                        if ($finalPercent >= 98) {
-                            $bestMatchDetails = "Almost identical name - {$bestMatchLevel}% match";
-                        } elseif ($finalPercent >= 95) {
-                            $bestMatchDetails = "Very high similarity - {$bestMatchLevel}% match";
-                        } else {
-                            $bestMatchDetails = "High confidence match - {$bestMatchLevel}% similar";
-                        }
-                    }
-                }
+            if (empty($normalizedName)) {
+                continue;
             }
-            
-            if ($matchFound) {
-                $duplicates[] = [
-                    'id' => $beneficiary['id'],
-                    'full_name' => $originalName,
-                    'barangay' => $beneficiary['barangay'] ?? '',
-                    'birthday' => $beneficiary['birthday'] ?? '',
-                    'batch_reference' => $beneficiary['batch_reference'] ?? '',
-                    'match_level' => $bestMatchLevel,
-                    'match_details' => $bestMatchDetails,
-                    'matched_with_id' => $bestMatchId
-                ];
-            } else {
-                $cleanRecords[] = [
-                    'id' => $beneficiary['id'],
-                    'full_name' => $originalName,
-                    'barangay' => $beneficiary['barangay'] ?? '',
-                    'birthday' => $beneficiary['birthday'] ?? '',
-                    'batch_reference' => $beneficiary['batch_reference'] ?? ''
-                ];
-                $processedNames[$beneficiary['id']] = [
-                    'original' => $originalName,
-                    'normalized' => $normalizedName,
-                    'first_name' => getFirstName($normalizedName),
-                    'last_name' => getLastName($normalizedName)
-                ];
-            }
+
+            $nameGroups[$normalizedName][] = $beneficiary;
         }
-        
-        // Also add the original records that the duplicates matched with
-        $allDuplicateIds = [];
-        foreach ($duplicates as $dup) {
-            $allDuplicateIds[] = $dup['id'];
-            if ($dup['matched_with_id'] && !in_array($dup['matched_with_id'], $allDuplicateIds)) {
-                $allDuplicateIds[] = $dup['matched_with_id'];
-            }
-        }
-        
-        // Get the original matched records and add them to duplicates list
-        foreach ($beneficiaries as $beneficiary) {
-            if (in_array($beneficiary['id'], $allDuplicateIds) && !in_array($beneficiary['id'], $acceptedIds)) {
-                $isAlreadyInDuplicates = false;
-                foreach ($duplicates as $dup) {
-                    if ($dup['id'] == $beneficiary['id']) {
-                        $isAlreadyInDuplicates = true;
-                        break;
-                    }
-                }
-                
-                if (!$isAlreadyInDuplicates) {
-                    $originalName = trim($beneficiary['full_name'] ?? $beneficiary['name'] ?? '');
+
+        foreach ($nameGroups as $normalizedName => $groupMembers) {
+            if (count($groupMembers) > 1) {
+                foreach ($groupMembers as $member) {
                     $duplicates[] = [
-                        'id' => $beneficiary['id'],
-                        'full_name' => $originalName,
-                        'barangay' => $beneficiary['barangay'] ?? '',
-                        'birthday' => $beneficiary['birthday'] ?? '',
-                        'batch_reference' => $beneficiary['batch_reference'] ?? '',
+                        'id' => $member['id'],
+                        'full_name' => trim($member['full_name'] ?? $member['name'] ?? ''),
+                        'barangay' => $member['barangay'] ?? '',
+                        'birthday' => $member['birthday'] ?? '',
+                        'batch_reference' => $member['batch_reference'] ?? '',
                         'match_level' => 100,
-                        'match_details' => 'Original record (has high-confidence duplicates)',
+                        'match_details' => 'Exact matching name',
                         'matched_with_id' => null
                     ];
                 }
+            } else {
+                $member = $groupMembers[0];
+                $cleanRecords[] = [
+                    'id' => $member['id'],
+                    'full_name' => trim($member['full_name'] ?? $member['name'] ?? ''),
+                    'barangay' => $member['barangay'] ?? '',
+                    'birthday' => $member['birthday'] ?? '',
+                    'batch_reference' => $member['batch_reference'] ?? ''
+                ];
             }
         }
-        
-        // Remove duplicates from clean records
-        $finalCleanRecords = [];
-        foreach ($cleanRecords as $clean) {
-            if (!in_array($clean['id'], $allDuplicateIds) && !in_array($clean['id'], $acceptedIds)) {
-                $finalCleanRecords[] = $clean;
-            }
-        }
-        
+
         // Sort duplicates by name
         usort($duplicates, function($a, $b) {
             return strcmp($a['full_name'], $b['full_name']);
         });
         
+        $finalCleanRecords = $cleanRecords;
         $totalChecked = count($beneficiaries);
         $duplicatesFound = count($duplicates);
         $cleanRecordsCount = count($finalCleanRecords);

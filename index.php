@@ -67,7 +67,7 @@ try {
                             <span>Import List</span>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <!-- <li class="nav-item">
                         <a href="#" class="nav-link" data-page="results">
                             <i class="bi bi-table"></i>
                             <span>Results</span>
@@ -90,7 +90,7 @@ try {
                             <i class="bi bi-gear"></i>
                             <span>Settings</span>
                         </a>
-                    </li>
+                    </li> -->
                 </ul>
             </nav>
             
@@ -122,13 +122,13 @@ try {
                         
                         <div class="d-flex align-items-center gap-3">
                             <!-- Search -->
-                            <div class="search-box">
+                            <!-- <div class="search-box">
                                 <i class="bi bi-search"></i>
                                 <input type="text" class="form-control" placeholder="Search beneficiaries...">
-                            </div>
+                            </div> -->
                             
                             <!-- Notifications -->
-                            <div class="dropdown">
+                            <!-- <div class="dropdown">
                                 <button class="btn btn-link notification-btn" data-bs-toggle="dropdown">
                                     <i class="bi bi-bell"></i>
                                     <span class="badge bg-danger">3</span>
@@ -159,7 +159,7 @@ try {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> -->
                             
                             <!-- User Menu -->
                             <div class="dropdown">
@@ -170,9 +170,9 @@ try {
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-end">
                                     <div class="dropdown-header">Logged in as: <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong></div>
-                                    <a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a>
+                                    <!-- <a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a>
                                     <a class="dropdown-item" href="#"><i class="bi bi-gear"></i> Settings</a>
-                                    <div class="dropdown-divider"></div>
+                                    <div class="dropdown-divider"></div> -->
                                     <a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a>
                                 </div>
                             </div>
@@ -220,17 +220,6 @@ try {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-xl-3 col-md-6">
-                            <div class="stats-card gradient-2">
-                                <div class="stats-icon">
-                                    <i class="bi bi-check2-all"></i>
-                                </div>
-                                <div class="stats-info">
-                                    <h3><?php echo number_format($stats['total_checks']); ?></h3>
-                                    <p>Total Checks</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Charts Row -->
@@ -256,7 +245,7 @@ try {
                                                 <small>Scan latest imported list</small>
                                             </button>
                                         </div>
-                                        <div class="col-6">
+                                        <!-- <div class="col-6">
                                             <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('results')" style="background: #F0EFFF;">
                                                 <i class="bi bi-file-earmark-text display-6 mb-2"></i>
                                                 <h6>View Results</h6>
@@ -269,12 +258,12 @@ try {
                                                 <h6>Generate Report</h6>
                                                 <small>Export detailed reports</small>
                                             </button>
-                                        </div>
+                                        </div> -->
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <!-- <div class="col-lg-4">
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="mb-0">Duplicates by Barangay</h5>
@@ -283,11 +272,11 @@ try {
                                     <canvas id="barangayChart" height="300"></canvas>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
 
                     <!-- Recent Activity -->
-                    <div class="row g-4">
+                    <!-- <div class="row g-4">
                         <div class="col-lg-6" style="width: 100%;">
                             <div class="card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -338,7 +327,7 @@ try {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 <!-- Import List Page (now opens modal) -->
@@ -390,6 +379,13 @@ try {
                                     </div>
                                 </div>
                             </div>
+                            <!-- <div class="mb-3">
+                                <label class="form-label">Note</label>
+                                <div class="alert alert-info py-2">
+                                    The Excel file must include: <strong>Name, Barangay, Birthday, Assistance Receive</strong>.
+                                    The Assistance Receive value will be stored in the record's <code>batch_reference</code> field.
+                                </div>
+                            </div> -->
                             <div class="mb-3">
                                 <label for="batchName" class="form-label">Batch Name (Optional)</label>
                                 <input type="text" class="form-control" id="batchName" name="batchName" placeholder="e.g., January 2024 Payout">
@@ -412,7 +408,7 @@ try {
                     <div class="row g-4">
                         <div class="col-lg-12">
                             <div class="card">
-                                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0"><i class="bi bi-search"></i> Duplicate Check Results</h5>
                                     <div>
                                         <button class="btn btn-light btn-sm me-2" onclick="window.location.reload()">
@@ -458,16 +454,22 @@ try {
                         </div>
                         <div class="card-body">
                             <div id="resultSummary" class="mb-4"></div>
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="sortNameBtn" onclick="toggleSortResults('name')">
+                                    <i class="bi bi-arrow-down-up me-1"></i>
+                                    Sort by Name A → Z
+                                </button>
+                            </div>
                             <div class="table-responsive">
                                 <table class="table table-hover" id="resultsTable">
                                     <thead class="table-dark">
                                         <tr>
                                             <th>#</th>
-                                            <th>Name</th>
-                                            <th>Barangay</th>
-                                            <th>Birthday</th>
-                                            <th>Status</th>
-                                            <th>Match Type</th>
+                                            <th class="sortable" data-sort="name" onclick="toggleSortResults('name')">Name <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                            <th class="sortable" data-sort="barangay" onclick="toggleSortResults('barangay')">Barangay <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                            <th class="sortable" data-sort="birthday" onclick="toggleSortResults('birthday')">Birthday <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                            <th class="sortable" data-sort="status" onclick="toggleSortResults('status')">Status <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                                            <th class="sortable" data-sort="match_type" onclick="toggleSortResults('match_type')">Match Type <i class="bi bi-arrow-down-up sort-icon"></i></th>
                                         </tr>
                                     </thead>
                                     <tbody id="resultsBody">
@@ -742,14 +744,6 @@ try {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-light">
-                        <div class="card-body text-center">
-                            <h3 class="text-info">${data.duplicate_percentage || 0}%</h3>
-                            <p class="mb-0">Duplicate Rate</p>
-                        </div>
-                    </div>
-                </div>
             </div>
         `;
         
@@ -764,7 +758,7 @@ try {
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover table-bordered" id="duplicatesTable">
-                        <thead class="table-danger">
+                        <thead>
                             <tr>
                                 <th><input type="checkbox" id="selectAllDuplicates" onclick="toggleSelectAllDuplicates()"></th>
                                 <th>#</th>
@@ -772,7 +766,6 @@ try {
                                 <th>Barangay</th>
                                 <th>Birthday</th>
                                 <th>Batch Reference</th>
-                                <th>Match Level</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -804,8 +797,7 @@ try {
                         <td><strong>${escapeHtml(dup.full_name)}</strong> <br><small class="text-muted">${escapeHtml(dup.match_details)}</small></td>
                         <td>${escapeHtml(dup.barangay)}</td>
                         <td>${escapeHtml(dup.birthday)}</td>
-                        <td><span class="badge bg-info">${escapeHtml(dup.batch_reference)}</span></td>
-                        <td>${matchBadge}</td>
+                        <td><span class="badge bg-secondary">${escapeHtml(dup.batch_reference)}</span></td>
                         <td>
                             <button class="btn btn-sm btn-success mb-1" onclick="acceptAsClean(${dup.id})" title="Accept as clean record">
                                 <i class="bi bi-check-circle"></i> Accept as Clean

@@ -219,6 +219,23 @@ body {
     margin-right: 1rem;
 }
 
+/* Sortable table headers */
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+th.sortable .sort-icon {
+    margin-left: 6px;
+    font-size: 0.95rem;
+    transition: transform 0.2s ease;
+}
+th.sortable.sorted-asc .sort-icon {
+    transform: rotate(180deg);
+}
+th.sortable.sorted-desc .sort-icon {
+    transform: rotate(0deg);
+}
+
 .page-title {
     font-weight: 600;
     color: var(--text-primary);
