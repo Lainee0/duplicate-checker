@@ -26,7 +26,6 @@ $(document).ready(function() {
 
     // File Upload Handling
     setupFileUpload('master');
-    setupFileUpload('new');
 
     // Import Master List
     $('#masterListForm').on('submit', function(e) {
@@ -82,12 +81,18 @@ $(document).ready(function() {
     $('#checkDuplicatesForm').on('submit', function(e) {
         e.preventDefault();
         
+        if (!$('#matchName').is(':checked') && !$('#matchBarangay').is(':checked') && !$('#matchBirthday').is(':checked')) {
+            showAlert('checkStatus', 'danger', 'Please select at least one matching criterion before checking duplicates.');
+            return;
+        }
+
         const formData = new FormData(this);
         formData.append('action', 'check_duplicates');
         formData.append('match_name', $('#matchName').is(':checked'));
         formData.append('match_barangay', $('#matchBarangay').is(':checked'));
         formData.append('match_birthday', $('#matchBirthday').is(':checked'));
         formData.append('fuzzy_match', $('#fuzzyMatch').is(':checked'));
+        formData.append('batch_reference', $('#batchReference').val());
         
         showLoading('checkStatus', 'Checking for duplicates...');
         
@@ -130,7 +135,6 @@ function switchPage(pageName) {
     const titles = {
         'dashboard': 'Dashboard',
         'import-master': 'Import Master List',
-        'check-duplicates': 'Check Duplicates',
         'results': 'Results',
         'history': 'History',
         'reports': 'Reports',
@@ -302,6 +306,10 @@ function exportDuplicates() {
 
 function exportCleanList() {
     window.location.href = `export.php?type=clean&check_id=${currentCheckId}`;
+}
+
+function triggerDuplicateCheck() {
+    $('#checkDuplicatesForm').submit();
 }
 
 // View Check Details

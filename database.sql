@@ -9,8 +9,7 @@ CREATE TABLE IF NOT EXISTS received_beneficiaries (
     barangay VARCHAR(100) NOT NULL,
     birthday DATE NOT NULL,
     date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    batch_reference VARCHAR(100),
-    UNIQUE KEY unique_beneficiary (name, barangay, birthday)
+    batch_reference VARCHAR(100)
 );
 
 -- Table for checking history

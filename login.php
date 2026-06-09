@@ -250,11 +250,11 @@ if (isset($_GET['error'])) {
                     </label> -->
                 </div>
 
-                <div class="demo-credentials">
+                <!-- <div class="demo-credentials">
                     <strong><i class="bi bi-info-circle"></i> Demo Credentials:</strong>
                     Username: <code>admin</code><br>
                     Password: <code>admin</code>
-                </div>
+                </div> -->
                 
                 <button type="submit" class="btn btn-login">
                     <i class="bi bi-box-arrow-in-right"></i> Sign In

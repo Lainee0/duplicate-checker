@@ -81,12 +81,11 @@ function handleMasterImport() {
     
     try {
         $stmt = $pdo->prepare(
-            "INSERT IGNORE INTO received_beneficiaries (name, barangay, birthday, batch_reference) 
+            "INSERT INTO received_beneficiaries (name, barangay, birthday, batch_reference) 
              VALUES (?, ?, ?, ?)"
         );
         
         $imported = 0;
-        $skipped = 0;
         
         for ($i = 1; $i < count($data); $i++) {
             $row = $data[$i];
@@ -101,11 +100,7 @@ function handleMasterImport() {
             $birthday = formatDate($row[$birthdayCol]);
             
             if ($stmt->execute([$name, $barangay, $birthday, $batchName])) {
-                if ($stmt->rowCount() > 0) {
-                    $imported++;
-                } else {
-                    $skipped++;
-                }
+                $imported++;
             }
         }
         
@@ -113,9 +108,8 @@ function handleMasterImport() {
         
         echo json_encode([
             'success' => true,
-            'message' => "Successfully imported $imported records" . ($skipped > 0 ? " ($skipped duplicates skipped)" : ""),
-            'imported' => $imported,
-            'skipped' => $skipped
+            'message' => "Successfully imported $imported records",
+            'imported' => $imported
         ]);
         
     } catch (Exception $e) {
@@ -125,130 +119,108 @@ function handleMasterImport() {
 }
 
 function handleDuplicateCheck() {
-    if (!isset($_FILES['newFile'])) {
-        throw new Exception('No file uploaded');
-    }
-    
-    $file = $_FILES['newFile'];
     $matchName = $_POST['match_name'] === 'true';
     $matchBarangay = $_POST['match_barangay'] === 'true';
     $matchBirthday = $_POST['match_birthday'] === 'true';
     $fuzzyMatch = $_POST['fuzzy_match'] === 'true';
+    $batchReference = trim($_POST['batch_reference'] ?? '');
     
-    // Read Excel file
-    $spreadsheet = IOFactory::load($file['tmp_name']);
-    $worksheet = $spreadsheet->getActiveSheet();
-    $data = $worksheet->toArray();
-    
-    if (count($data) < 2) {
-        throw new Exception('File is empty or has no data rows');
-    }
-    
-    // Get headers
-    $headers = array_map('strtolower', array_map('trim', $data[0]));
-    
-    // Find column indexes
-    $nameCol = array_search('name', $headers);
-    $barangayCol = array_search('barangay', $headers);
-    $birthdayCol = array_search('birthday', $headers);
-    
-    if ($nameCol === false || $barangayCol === false || $birthdayCol === false) {
-        throw new Exception('Missing required columns. File must contain: Name, Barangay, Birthday');
-    }
-    
-    // Process new beneficiaries
-    $newBeneficiaries = [];
-    for ($i = 1; $i < count($data); $i++) {
-        $row = $data[$i];
-        
-        if (empty($row[$nameCol]) && empty($row[$barangayCol]) && empty($row[$birthdayCol])) {
-            continue;
-        }
-        
-        $newBeneficiaries[] = [
-            'name' => strtoupper(trim($row[$nameCol])),
-            'barangay' => strtoupper(trim($row[$barangayCol])),
-            'birthday' => formatDate($row[$birthdayCol])
-        ];
-    }
-    
-    // Find duplicates
     $pdo = getConnection();
-    $duplicates = [];
-    $batchName = date('Y-m-d H:i:s') . ' Check';
     
-    // Build query based on matching criteria
-    $conditions = [];
-    $params = [];
+    if (empty($batchReference)) {
+        $stmt = $pdo->query(
+            "SELECT batch_reference FROM received_beneficiaries 
+             WHERE batch_reference IS NOT NULL AND batch_reference != '' 
+             ORDER BY date_added DESC LIMIT 1"
+        );
+        $batchReference = $stmt->fetchColumn();
+    }
     
-    foreach ($newBeneficiaries as $beneficiary) {
-        $query = "SELECT * FROM received_beneficiaries WHERE 1=1";
-        $queryParams = [];
-        $matchTypes = [];
-        
+    if (!$batchReference) {
+        throw new Exception('No imported batch found to check. Please import a list first.');
+    }
+    
+    if (!$matchName && !$matchBarangay && !$matchBirthday) {
+        throw new Exception('Select at least one matching criterion to scan duplicates.');
+    }
+    
+    $stmt = $pdo->prepare(
+        "SELECT id, name, barangay, birthday FROM received_beneficiaries WHERE batch_reference = ?"
+    );
+    $stmt->execute([$batchReference]);
+    $records = $stmt->fetchAll();
+    
+    if (count($records) < 2) {
+        throw new Exception('Not enough records in the latest imported batch to check for duplicates.');
+    }
+    
+    $groups = [];
+    foreach ($records as $record) {
+        $keyParts = [];
         if ($matchName) {
-            if ($fuzzyMatch) {
-                // Fuzzy matching using SOUNDEX or similar
-                $query .= " AND SOUNDEX(name) = SOUNDEX(?)";
-                $queryParams[] = $beneficiary['name'];
-                $matchTypes[] = "Fuzzy Name";
-            } else {
-                $query .= " AND name = ?";
-                $queryParams[] = $beneficiary['name'];
-                $matchTypes[] = "Name";
+            $keyParts[] = $fuzzyMatch ? soundex($record['name']) : $record['name'];
+        }
+        if ($matchBarangay) {
+            $keyParts[] = $record['barangay'];
+        }
+        if ($matchBirthday) {
+            $keyParts[] = $record['birthday'];
+        }
+        $key = implode('||', $keyParts);
+        $groups[$key][] = $record;
+    }
+    
+    $duplicates = [];
+    $matchTypeParts = [];
+    if ($matchName) {
+        $matchTypeParts[] = $fuzzyMatch ? 'Fuzzy Name' : 'Name';
+    }
+    if ($matchBarangay) {
+        $matchTypeParts[] = 'Barangay';
+    }
+    if ($matchBirthday) {
+        $matchTypeParts[] = 'Birthday';
+    }
+    $matchTypeLabel = implode(' + ', $matchTypeParts);
+    
+    foreach ($groups as $group) {
+        if (count($group) > 1) {
+            foreach ($group as $record) {
+                $duplicates[] = [
+                    'name' => $record['name'],
+                    'barangay' => $record['barangay'],
+                    'birthday' => $record['birthday'],
+                    'match_type' => $matchTypeLabel
+                ];
             }
         }
-        
-        if ($matchBarangay) {
-            $query .= " AND barangay = ?";
-            $queryParams[] = $beneficiary['barangay'];
-            $matchTypes[] = "Barangay";
-        }
-        
-        if ($matchBirthday) {
-            $query .= " AND birthday = ?";
-            $queryParams[] = $beneficiary['birthday'];
-            $matchTypes[] = "Birthday";
-        }
-        
-        $stmt = $pdo->prepare($query);
-        $stmt->execute($queryParams);
-        $results = $stmt->fetchAll();
-        
-        if (count($results) > 0) {
-            $duplicates[] = [
-                'name' => $beneficiary['name'],
-                'barangay' => $beneficiary['barangay'],
-                'birthday' => $beneficiary['birthday'],
-                'match_type' => implode(' + ', $matchTypes)
-            ];
-        }
     }
     
-    // Save check history
+    $totalChecked = count($records);
+    $duplicateCount = count($duplicates);
+    $cleanCount = $totalChecked - $duplicateCount;
+    $batchName = 'Imported Batch - ' . $batchReference;
+    
     $pdo->beginTransaction();
     try {
-        // Insert check history
         $stmt = $pdo->prepare(
             "INSERT INTO check_history (batch_name, total_checked, duplicates_found, clean_records) 
              VALUES (?, ?, ?, ?)"
         );
         $stmt->execute([
             $batchName,
-            count($newBeneficiaries),
-            count($duplicates),
-            count($newBeneficiaries) - count($duplicates)
+            $totalChecked,
+            $duplicateCount,
+            $cleanCount
         ]);
         
         $checkId = $pdo->lastInsertId();
         
-        // Store duplicate records
         if (count($duplicates) > 0) {
             $stmt = $pdo->prepare(
                 "INSERT INTO duplicate_records (check_id, name, barangay, birthday, match_type) 
                  VALUES (?, ?, ?, ?, ?)"
             );
-            
             foreach ($duplicates as $duplicate) {
                 $stmt->execute([
                     $checkId,
@@ -261,23 +233,20 @@ function handleDuplicateCheck() {
         }
         
         $pdo->commit();
-        
-        // Store check ID in session for export
         $_SESSION['last_check_id'] = $checkId;
         
         echo json_encode([
             'success' => true,
             'data' => [
                 'summary' => [
-                    'total_checked' => count($newBeneficiaries),
-                    'duplicates' => count($duplicates),
-                    'clean' => count($newBeneficiaries) - count($duplicates)
+                    'total_checked' => $totalChecked,
+                    'duplicates' => $duplicateCount,
+                    'clean' => $cleanCount
                 ],
                 'duplicates' => $duplicates,
                 'check_id' => $checkId
             ]
         ]);
-        
     } catch (Exception $e) {
         $pdo->rollBack();
         throw $e;
