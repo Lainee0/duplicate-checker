@@ -757,13 +757,13 @@ try {
                         <td><span class="badge bg-secondary">${escapeHtml(dup.batch_reference)}</span></td>
                         <td>
                             <button class="btn btn-sm btn-success mb-1" onclick="acceptAsClean(${dup.id})" title="Accept as clean record">
-                                <i class="bi bi-check-circle"></i> Accept as Clean
+                                <i class="bi bi-check-circle"></i>
                             </button>
-                            <button class="btn btn-sm btn-info mb-1" onclick="viewDuplicateDetails(${dup.id})">
-                                <i class="bi bi-eye"></i> View
+                            <button class="btn btn-sm btn-warning mb-1" onclick="viewDuplicateDetails(${dup.id})">
+                                <i class="bi bi-eye"></i>
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="deleteDuplicate(${dup.id})">
-                                <i class="bi bi-trash"></i> Delete
+                                <i class="bi bi-trash"></i>
                             </button>
                         </td>
                     </tr>
