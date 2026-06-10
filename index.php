@@ -67,6 +67,12 @@ try {
                             <span>Import List</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="openDuplicateCheckPage()">
+                            <i class="bi bi-search"></i>
+                            <span>Check Duplicates</span>
+                        </a>
+                    </li>
                     <!-- <li class="nav-item">
                         <a href="#" class="nav-link" data-page="results">
                             <i class="bi bi-table"></i>
@@ -220,59 +226,6 @@ try {
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Charts Row -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-lg-6" style="width: 66%;">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">Quick Actions</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" data-bs-toggle="modal" data-bs-target="#importModal" style="background: #F0EFFF;">
-                                                <i class="bi bi-upload display-6 mb-2"></i>
-                                                <h6>Import List</h6>
-                                                <small>Upload received beneficiaries</small>
-                                            </button>
-                                        </div>
-                                        <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" onclick="openDuplicateCheckPage()" style="background: #F0EFFF;">
-                                                <i class="bi bi-search display-6 mb-2"></i>
-                                                <h6>Check Duplicates</h6>
-                                                <small>Scan latest imported list</small>
-                                            </button>
-                                        </div>
-                                        <!-- <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('results')" style="background: #F0EFFF;">
-                                                <i class="bi bi-file-earmark-text display-6 mb-2"></i>
-                                                <h6>View Results</h6>
-                                                <small>Check previous results</small>
-                                            </button>
-                                        </div>
-                                        <div class="col-6">
-                                            <button class="btn w-100 p-4 quick-action-btn" onclick="switchPage('reports')" style="background: #F0EFFF;">
-                                                <i class="bi bi-file-earmark-bar-graph display-6 mb-2"></i>
-                                                <h6>Generate Report</h6>
-                                                <small>Export detailed reports</small>
-                                            </button>
-                                        </div> -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- <div class="col-lg-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">Duplicates by Barangay</h5>
-                                </div>
-                                <div class="card-body">
-                                    <canvas id="barangayChart" height="300"></canvas>
-                                </div>
-                            </div>
-                        </div> -->
                     </div>
 
                     <!-- Recent Activity -->
