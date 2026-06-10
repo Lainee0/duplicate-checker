@@ -213,53 +213,78 @@ function scanDuplicates($params) {
                 
                 // Check if last names match exactly (case-insensitive)
                 $lastNameMatch = false;
-                $middleNameMatch = false;
                 
                 if (!empty($current['lastname']) && !empty($compare['lastname'])) {
                     $lastNameMatch = (strtolower(trim($current['lastname'])) === strtolower(trim($compare['lastname'])));
                 }
                 
-                // Check if middle names match exactly (case-insensitive)
-                // Handle empty middlenames - if both are empty, consider as match
+                // Only proceed if last names match
+                if (!$lastNameMatch) {
+                    continue;
+                }
+                
+                // Check first names - they must match or be spelling variations
+                $firstNameMatch = areSpellingVariations($current['firstname'], $compare['firstname']);
+                
+                if (!$firstNameMatch) {
+                    continue;
+                }
+                
+                // Check middle names - can be:
+                // 1. Both empty
+                // 2. Both present and identical
+                // 3. Both present and spelling variations
+                // 4. One empty, one not (still consider as potential duplicate)
                 $currentMiddle = strtolower(trim($current['middlename'] ?? ''));
                 $compareMiddle = strtolower(trim($compare['middlename'] ?? ''));
                 
+                $middleNameMatch = false;
+                $matchDetails = "Same last name: {$current['lastname']}<br>";
+                
                 if (empty($currentMiddle) && empty($compareMiddle)) {
+                    // Both empty - match
                     $middleNameMatch = true;
+                    $matchDetails .= "Middle name: (none)<br>";
                 } elseif (!empty($currentMiddle) && !empty($compareMiddle)) {
-                    $middleNameMatch = ($currentMiddle === $compareMiddle);
+                    // Check if they match exactly or are spelling variations
+                    if ($currentMiddle === $compareMiddle) {
+                        $middleNameMatch = true;
+                        $matchDetails .= "Same middle name: {$current['middlename']}<br>";
+                    } else {
+                        // Check if middle names are spelling variations
+                        if (areSpellingVariations($current['middlename'], $compare['middlename'])) {
+                            $middleNameMatch = true;
+                            similar_text($currentMiddle, $compareMiddle, $middlePercent);
+                            $matchDetails .= "Middle name: '{$current['middlename']}' vs '{$compare['middlename']}' (" . round($middlePercent) . "% similar)<br>";
+                        }
+                    }
                 } else {
-                    $middleNameMatch = false;
+                    // One empty, one not - still consider potential duplicate
+                    $middleNameMatch = true;
+                    $matchDetails .= "Middle name: '{$current['middlename']}' vs '{$compare['middlename']}'<br>";
                 }
                 
-                // Only proceed if BOTH lastname AND middlename match
-                if ($lastNameMatch && $middleNameMatch) {
-                    // Now check if first names are spelling variations
-                    $isSpellingVariation = areSpellingVariations($current['firstname'], $compare['firstname']);
+                // If any of the name parts match, flag as duplicate
+                if ($middleNameMatch) {
+                    // Calculate similarity percentage for display
+                    similar_text(strtolower($current['firstname']), strtolower($compare['firstname']), $firstPercent);
+                    $matchLevel = round($firstPercent);
                     
-                    if ($isSpellingVariation) {
-                        // Calculate similarity percentage for display
-                        similar_text(strtolower($current['firstname']), strtolower($compare['firstname']), $percent);
-                        $matchLevel = round($percent);
-                        
-                        $matchDetails = "Same last name: {$current['lastname']}<br>";
-                        $matchDetails .= "Same middle name: " . ($current['middlename'] ?: '(none)') . "<br>";
-                        $matchDetails .= "First name: '{$current['firstname']}' vs '{$compare['firstname']}'<br>";
-                        $matchDetails .= "Similarity: {$matchLevel}% - Possible typo/spelling variation";
-                        
-                        $matches[] = [
-                            'id' => $compare['id'],
-                            'full_name' => $compare['original_data']['full_name'] ?? $compare['original_data']['name'] ?? '',
-                            'firstname' => $compare['firstname'],
-                            'lastname' => $compare['lastname'],
-                            'middlename' => $compare['middlename'],
-                            'barangay' => $compare['original_data']['barangay'] ?? '',
-                            'birthday' => $compare['original_data']['birthday'] ?? '',
-                            'batch_reference' => $compare['original_data']['batch_reference'] ?? '',
-                            'match_level' => $matchLevel,
-                            'match_details' => $matchDetails
-                        ];
-                    }
+                    $matchDetails .= "First name: '{$current['firstname']}' vs '{$compare['firstname']}'<br>";
+                    $matchDetails .= "Similarity: {$matchLevel}% - Possible typo/spelling variation";
+                    
+                    $matches[] = [
+                        'id' => $compare['id'],
+                        'full_name' => $compare['original_data']['full_name'] ?? $compare['original_data']['name'] ?? '',
+                        'firstname' => $compare['firstname'],
+                        'lastname' => $compare['lastname'],
+                        'middlename' => $compare['middlename'],
+                        'barangay' => $compare['original_data']['barangay'] ?? '',
+                        'birthday' => $compare['original_data']['birthday'] ?? '',
+                        'batch_reference' => $compare['original_data']['batch_reference'] ?? '',
+                        'match_level' => $matchLevel,
+                        'match_details' => $matchDetails
+                    ];
                 }
             }
             

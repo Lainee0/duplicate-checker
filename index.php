@@ -760,12 +760,6 @@ try {
                         </div>
                     </div>
                 </div>
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle-fill"></i> 
-                    Found <strong>${data.duplicates.length}</strong> potential duplicate(s). Review each record below.
-                    <br><small>• Click <strong>Accept as Clean</strong> if this is NOT a duplicate</small>
-                    <br><small>• Click <strong>Delete</strong> if this IS a duplicate</small>
-                </div>
                 <div class="table-responsive">
                     <table class="table table-hover table-bordered" id="duplicatesTable">
                         <thead>
