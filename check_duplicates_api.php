@@ -2,662 +2,481 @@
 session_start();
 require_once 'config.php';
 
-header('Content-Type: application/json');
-
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['logged_in'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
-// Get POST data
-$input = json_decode(file_get_contents('php://input'), true);
-if (!$input) {
-    $input = $_POST;
-}
+header('Content-Type: application/json');
 
-$action = $input['action'] ?? '';
+$action = $_POST['action'] ?? '';
 
-switch ($action) {
-    case 'scan_duplicates':
-        scanDuplicates($input);
-        break;
-    case 'get_duplicate_details':
-        getDuplicateDetails($input);
-        break;
-    case 'get_batch_list':
-        getBatchList();
-        break;
-    case 'scan_specific_batch':
-        scanSpecificBatch($input);
-        break;
-    case 'delete_duplicate':
-        deleteDuplicate($input);
-        break;
-    case 'delete_duplicates':
-        deleteDuplicates($input);
-        break;
-    case 'delete_all_duplicates':
-        deleteAllDuplicates($input);
-        break;
-    case 'get_clean_records':
-        getCleanRecords($input);
-        break;
-    case 'delete_history':
-        deleteHistory($input);
-        break;
-    case 'accept_as_clean':
-        acceptAsClean($input);
-        break;
-    case 'accept_selected_as_clean':
-        acceptSelectedAsClean($input);
-        break;
-    case 'accept_all_as_clean':
-        acceptAllAsClean($input);
-        break;
-    default:
-        echo json_encode(['success' => false, 'message' => 'Invalid action']);
-        break;
-}
-
-// Function to parse full name in format "Lastname, Firstname Middlename"
-function parseFullName($fullName) {
-    $result = [
-        'lastname' => '',
-        'firstname' => '',
-        'middlename' => '',
-        'suffix' => '',
-        'original' => $fullName
-    ];
+try {
+    $pdo = getConnection();
     
-    if (empty($fullName)) return $result;
-    
-    // Check if name contains comma (Lastname, Firstname format)
-    if (strpos($fullName, ',') !== false) {
-        $parts = explode(',', $fullName, 2);
-        $result['lastname'] = trim($parts[0]);
-        $nameParts = trim($parts[1]);
-        
-        // Split firstname and middlename
-        $nameSegments = preg_split('/\s+/', $nameParts);
-        if (count($nameSegments) > 0) {
-            $result['firstname'] = $nameSegments[0];
-            if (count($nameSegments) > 1) {
-                $result['middlename'] = implode(' ', array_slice($nameSegments, 1));
-            }
-        }
-    } else {
-        // No comma, assume "Firstname Lastname" format
-        $nameSegments = preg_split('/\s+/', $fullName);
-        if (count($nameSegments) >= 2) {
-            $result['firstname'] = $nameSegments[0];
-            $result['lastname'] = implode(' ', array_slice($nameSegments, 1));
-        } else {
-            $result['firstname'] = $fullName;
-        }
-    }
-    
-    // Remove common suffixes from lastname
-    $suffixes = ['JR', 'SR', 'II', 'III', 'IV', 'MD', 'DR', 'RN'];
-    foreach ($suffixes as $suffix) {
-        if (preg_match('/\b' . $suffix . '\b$/i', $result['lastname'])) {
-            $result['suffix'] = $suffix;
-            $result['lastname'] = preg_replace('/\b' . $suffix . '\b$/i', '', $result['lastname']);
-            $result['lastname'] = trim($result['lastname']);
+    switch ($action) {
+        case 'get_received_beneficiaries':
+            getReceivedBeneficiaries($pdo);
             break;
-        }
+            
+        case 'get_beneficiary_details':
+            getBeneficiaryDetails($pdo);
+            break;
+            
+        case 'scan_duplicates':
+            scanDuplicates($pdo);
+            break;
+            
+        case 'accept_as_clean':
+            acceptAsClean($pdo);
+            break;
+            
+        case 'accept_selected_as_clean':
+            acceptSelectedAsClean($pdo);
+            break;
+            
+        case 'accept_all_as_clean':
+            acceptAllAsClean($pdo);
+            break;
+            
+        case 'delete_duplicate':
+            deleteDuplicate($pdo);
+            break;
+            
+        case 'delete_duplicates':
+            deleteDuplicates($pdo);
+            break;
+            
+        case 'delete_all_duplicates':
+            deleteAllDuplicates($pdo);
+            break;
+            
+        case 'get_clean_records':
+            getCleanRecords($pdo);
+            break;
+            
+        case 'delete_history':
+            deleteHistory($pdo);
+            break;
+            
+        case 'get_batch_list':
+            getBatchList($pdo);
+            break;
+            
+        case 'scan_specific_batch':
+            scanSpecificBatch($pdo);
+            break;
+            
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
     }
-    
-    return $result;
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }
 
-// Function to check if two first names are spelling variations (typos, missing letters, etc.)
-function areSpellingVariations($name1, $name2) {
-    if (empty($name1) || empty($name2)) return false;
-    
-    $name1 = strtolower(trim($name1));
-    $name2 = strtolower(trim($name2));
-    
-    // Exact match
-    if ($name1 === $name2) {
-        return true;
-    }
-    
-    // Calculate similarity percentage
-    similar_text($name1, $name2, $percent);
-    
-    // For short names (3-4 letters), require higher similarity
-    $minLength = min(strlen($name1), strlen($name2));
-    if ($minLength <= 4) {
-        return $percent >= 85;
-    }
-    
-    // For longer names, 80% similarity is enough for typos
-    return $percent >= 80;
-}
-
-function scanDuplicates($params) {
+/**
+ * Get all received beneficiaries
+ */
+function getReceivedBeneficiaries($pdo) {
     try {
-        $pdo = getConnection();
+        $stmt = $pdo->query("SELECT id, name, barangay, birthday, batch_reference FROM received_beneficiaries ORDER BY name ASC");
+        $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $batchReference = $params['batch_reference'] ?? null;
+        echo json_encode([
+            'success' => true,
+            'data' => $records,
+            'total' => count($records)
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error fetching beneficiaries: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Get beneficiary details by ID
+ */
+function getBeneficiaryDetails($pdo) {
+    $id = $_POST['id'] ?? 0;
+    if (!$id) {
+        echo json_encode(['success' => false, 'message' => 'Beneficiary ID required']);
+        return;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT id, name, barangay, birthday, batch_reference FROM received_beneficiaries WHERE id = ?");
+        $stmt->execute([$id]);
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Build query for beneficiaries
-        $sql = "SELECT * FROM received_beneficiaries";
-        $queryParams = [];
-        
-        // Add condition to exclude accepted duplicates if column exists
-        try {
-            $columns = $pdo->query("SHOW COLUMNS FROM received_beneficiaries")->fetchAll(PDO::FETCH_COLUMN);
-            if (in_array('is_accepted_clean', $columns)) {
-                $sql .= " WHERE (is_accepted_clean IS NULL OR is_accepted_clean = 0)";
-                if ($batchReference) {
-                    $sql .= " AND batch_reference = ?";
-                    $queryParams[] = $batchReference;
-                }
-            } else {
-                if ($batchReference) {
-                    $sql .= " WHERE batch_reference = ?";
-                    $queryParams[] = $batchReference;
-                }
-            }
-        } catch (Exception $e) {
-            if ($batchReference) {
-                $sql .= " WHERE batch_reference = ?";
-                $queryParams[] = $batchReference;
-            }
+        if ($record) {
+            echo json_encode(['success' => true, 'data' => $record]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Beneficiary not found']);
         }
-        
-        $sql .= " ORDER BY id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($queryParams);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error fetching beneficiary: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Scan for duplicates in received beneficiaries
+ */
+function scanDuplicates($pdo) {
+    try {
+        // Get all beneficiaries
+        $stmt = $pdo->query("SELECT id, name, barangay, birthday, batch_reference FROM received_beneficiaries");
         $beneficiaries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         if (empty($beneficiaries)) {
-            echo json_encode(['success' => false, 'message' => 'No beneficiaries found in the selected batch. Please import a list first.']);
+            echo json_encode([
+                'success' => false,
+                'message' => 'No beneficiaries found to check. Please import a list first.'
+            ]);
             return;
         }
         
-        // Get batch info
-        $batchRef = $batchReference;
-        if (!$batchRef && !empty($beneficiaries)) {
-            $batchRef = $beneficiaries[0]['batch_reference'] ?? 'Unknown';
-        }
-        
-        // Parse all names first
-        $parsedBeneficiaries = [];
-        foreach ($beneficiaries as $beneficiary) {
-            $fullName = trim($beneficiary['full_name'] ?? $beneficiary['name'] ?? '');
-            $parsed = parseFullName($fullName);
-            $parsed['id'] = $beneficiary['id'];
-            $parsed['original_data'] = $beneficiary;
-            $parsedBeneficiaries[] = $parsed;
-        }
-        
-        // Find duplicates based on lastname AND middlename matching exactly
         $duplicates = [];
         $cleanRecords = [];
         $processedIds = [];
         
-        for ($i = 0; $i < count($parsedBeneficiaries); $i++) {
-            $current = $parsedBeneficiaries[$i];
+        // First, mark all as potential duplicates and find groups
+        foreach ($beneficiaries as $i => $beneficiary) {
+            if (in_array($beneficiary['id'], $processedIds)) continue;
             
-            if (in_array($current['id'], $processedIds)) {
-                continue;
-            }
+            $group = [$beneficiary];
+            $processedIds[] = $beneficiary['id'];
             
-            $matches = [];
-            
-            for ($j = $i + 1; $j < count($parsedBeneficiaries); $j++) {
-                $compare = $parsedBeneficiaries[$j];
+            // Compare with other beneficiaries
+            foreach ($beneficiaries as $j => $other) {
+                if ($i === $j || in_array($other['id'], $processedIds)) continue;
                 
-                // Check if last names match exactly (case-insensitive)
-                $lastNameMatch = false;
+                $similarity = calculateSimilarity($beneficiary, $other);
                 
-                if (!empty($current['lastname']) && !empty($compare['lastname'])) {
-                    $lastNameMatch = (strtolower(trim($current['lastname'])) === strtolower(trim($compare['lastname'])));
-                }
-                
-                // Only proceed if last names match
-                if (!$lastNameMatch) {
-                    continue;
-                }
-                
-                // Check first names - they must match or be spelling variations
-                $firstNameMatch = areSpellingVariations($current['firstname'], $compare['firstname']);
-                
-                if (!$firstNameMatch) {
-                    continue;
-                }
-                
-                // Check middle names - can be:
-                // 1. Both empty
-                // 2. Both present and identical
-                // 3. Both present and spelling variations
-                // 4. One empty, one not (still consider as potential duplicate)
-                $currentMiddle = strtolower(trim($current['middlename'] ?? ''));
-                $compareMiddle = strtolower(trim($compare['middlename'] ?? ''));
-                
-                $middleNameMatch = false;
-                $matchDetails = "Same last name: {$current['lastname']}<br>";
-                
-                if (empty($currentMiddle) && empty($compareMiddle)) {
-                    // Both empty - match
-                    $middleNameMatch = true;
-                    $matchDetails .= "Middle name: (none)<br>";
-                } elseif (!empty($currentMiddle) && !empty($compareMiddle)) {
-                    // Check if they match exactly or are spelling variations
-                    if ($currentMiddle === $compareMiddle) {
-                        $middleNameMatch = true;
-                        $matchDetails .= "Same middle name: {$current['middlename']}<br>";
-                    } else {
-                        // Check if middle names are spelling variations
-                        if (areSpellingVariations($current['middlename'], $compare['middlename'])) {
-                            $middleNameMatch = true;
-                            similar_text($currentMiddle, $compareMiddle, $middlePercent);
-                            $matchDetails .= "Middle name: '{$current['middlename']}' vs '{$compare['middlename']}' (" . round($middlePercent) . "% similar)<br>";
-                        }
-                    }
-                } else {
-                    // One empty, one not - still consider potential duplicate
-                    $middleNameMatch = true;
-                    $matchDetails .= "Middle name: '{$current['middlename']}' vs '{$compare['middlename']}'<br>";
-                }
-                
-                // If any of the name parts match, flag as duplicate
-                if ($middleNameMatch) {
-                    // Calculate similarity percentage for display
-                    similar_text(strtolower($current['firstname']), strtolower($compare['firstname']), $firstPercent);
-                    $matchLevel = round($firstPercent);
-                    
-                    $matchDetails .= "First name: '{$current['firstname']}' vs '{$compare['firstname']}'<br>";
-                    $matchDetails .= "Similarity: {$matchLevel}% - Possible typo/spelling variation";
-                    
-                    $matches[] = [
-                        'id' => $compare['id'],
-                        'full_name' => $compare['original_data']['full_name'] ?? $compare['original_data']['name'] ?? '',
-                        'firstname' => $compare['firstname'],
-                        'lastname' => $compare['lastname'],
-                        'middlename' => $compare['middlename'],
-                        'barangay' => $compare['original_data']['barangay'] ?? '',
-                        'birthday' => $compare['original_data']['birthday'] ?? '',
-                        'batch_reference' => $compare['original_data']['batch_reference'] ?? '',
-                        'match_level' => $matchLevel,
-                        'match_details' => $matchDetails
-                    ];
+                if ($similarity >= 85) { // 85% similarity threshold
+                    $group[] = $other;
+                    $processedIds[] = $other['id'];
                 }
             }
             
-            if (!empty($matches)) {
-                // Add current record as primary
-                $duplicates[] = [
-                    'id' => $current['id'],
-                    'full_name' => $current['original_data']['full_name'] ?? $current['original_data']['name'] ?? '',
-                    'firstname' => $current['firstname'],
-                    'lastname' => $current['lastname'],
-                    'middlename' => $current['middlename'],
-                    'barangay' => $current['original_data']['barangay'] ?? '',
-                    'birthday' => $current['original_data']['birthday'] ?? '',
-                    'batch_reference' => $current['original_data']['batch_reference'] ?? '',
-                    'match_level' => 100,
-                    'match_details' => "Original record (has potential duplicates with same last name and middle name)",
-                    'is_primary' => true
-                ];
+            // If group has more than 1, it's a duplicate group
+            if (count($group) > 1) {
+                // Sort group by name for consistency
+                usort($group, function($a, $b) {
+                    return strcmp($a['name'], $b['name']);
+                });
                 
-                // Add matches
-                foreach ($matches as $match) {
-                    $duplicates[] = $match;
-                    $processedIds[] = $match['id'];
+                // Add all records in group as duplicates
+                foreach ($group as $record) {
+                    $record['match_level'] = 95; // Default match level
+                    $record['match_details'] = count($group) > 1 ? 'Original record (has high-confidence duplicates)' : 'Potential duplicate';
+                    $duplicates[] = $record;
                 }
-                
-                $processedIds[] = $current['id'];
             } else {
-                // No matches found, clean record
-                $cleanRecords[] = [
-                    'id' => $current['id'],
-                    'full_name' => $current['original_data']['full_name'] ?? $current['original_data']['name'] ?? '',
-                    'firstname' => $current['firstname'],
-                    'lastname' => $current['lastname'],
-                    'middlename' => $current['middlename'],
-                    'barangay' => $current['original_data']['barangay'] ?? '',
-                    'birthday' => $current['original_data']['birthday'] ?? '',
-                    'batch_reference' => $current['original_data']['batch_reference'] ?? ''
-                ];
+                // Single record - consider it clean
+                $cleanRecords[] = $beneficiary;
             }
         }
         
-        // Sort duplicates by last name then first name
-        usort($duplicates, function($a, $b) {
-            $lastNameComp = strcmp($a['lastname'], $b['lastname']);
-            if ($lastNameComp === 0) {
-                $middleNameComp = strcmp($a['middlename'], $b['middlename']);
-                if ($middleNameComp === 0) {
-                    return strcmp($a['firstname'], $b['firstname']);
-                }
-                return $middleNameComp;
-            }
-            return $lastNameComp;
-        });
-        
+        // Save check history
+        $stmt = $pdo->prepare("INSERT INTO check_history (batch_name, total_checked, duplicates_found, clean_records, check_date) VALUES (?, ?, ?, ?, NOW())");
+        $batchName = $_POST['batch_name'] ?? 'Auto Check ' . date('Y-m-d H:i:s');
         $totalChecked = count($beneficiaries);
         $duplicatesFound = count($duplicates);
-        $cleanRecordsCount = count($cleanRecords);
-        $duplicatePercentage = $totalChecked > 0 ? round(($duplicatesFound / $totalChecked) * 100, 2) : 0;
-        
-        // Save to check history
-        try {
-            $columns = $pdo->query("SHOW COLUMNS FROM check_history")->fetchAll(PDO::FETCH_COLUMN);
-            
-            if (in_array('batch_reference', $columns)) {
-                $stmt = $pdo->prepare("
-                    INSERT INTO check_history (batch_reference, total_checked, duplicates_found, clean_records, check_date) 
-                    VALUES (?, ?, ?, ?, NOW())
-                ");
-                $stmt->execute([$batchRef, $totalChecked, $duplicatesFound, $cleanRecordsCount]);
-            } else {
-                $stmt = $pdo->prepare("
-                    INSERT INTO check_history (total_checked, duplicates_found, clean_records, check_date) 
-                    VALUES (?, ?, ?, NOW())
-                ");
-                $stmt->execute([$totalChecked, $duplicatesFound, $cleanRecordsCount]);
-            }
-        } catch (Exception $e) {
-            error_log("Failed to save to check_history: " . $e->getMessage());
-        }
-        
-        // Store results in session
-        $_SESSION['last_duplicate_check'] = [
-            'duplicates' => $duplicates,
-            'clean_records' => $cleanRecords,
-            'total_checked' => $totalChecked,
-            'duplicates_found' => $duplicatesFound,
-            'clean_records_count' => $cleanRecordsCount,
-            'duplicate_percentage' => $duplicatePercentage,
-            'batch_reference' => $batchRef
-        ];
+        $cleanCount = count($cleanRecords);
+        $stmt->execute([$batchName, $totalChecked, $duplicatesFound, $cleanCount]);
         
         echo json_encode([
             'success' => true,
             'total_checked' => $totalChecked,
             'duplicates_found' => $duplicatesFound,
-            'clean_records' => $cleanRecordsCount,
-            'duplicate_percentage' => $duplicatePercentage,
+            'clean_records' => $cleanCount,
             'duplicates' => $duplicates,
             'clean_records_data' => $cleanRecords,
-            'batch_reference' => $batchRef
+            'batch_reference' => $batchName,
+            'message' => 'Duplicate scan completed successfully'
         ]);
         
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Error scanning duplicates: ' . $e->getMessage()]);
     }
 }
 
-function scanSpecificBatch($params) {
-    scanDuplicates($params);
-}
-
-function getBatchList() {
-    try {
-        $pdo = getConnection();
-        $columns = $pdo->query("SHOW COLUMNS FROM received_beneficiaries")->fetchAll(PDO::FETCH_COLUMN);
-        
-        if (in_array('batch_reference', $columns)) {
-            $stmt = $pdo->query("SELECT DISTINCT batch_reference FROM received_beneficiaries WHERE batch_reference IS NOT NULL ORDER BY id DESC");
-            $batches = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            $batches = [];
-        }
-        
-        echo json_encode([
-            'success' => true,
-            'batches' => $batches
-        ]);
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage(), 'batches' => []]);
+/**
+ * Calculate similarity between two beneficiaries
+ */
+function calculateSimilarity($a, $b) {
+    $score = 0;
+    $total = 0;
+    
+    // Compare name (40% weight)
+    if (!empty($a['name']) && !empty($b['name'])) {
+        similar_text(strtolower($a['name']), strtolower($b['name']), $percent);
+        $score += ($percent / 100) * 40;
+        $total += 40;
     }
+    
+    // Compare barangay (30% weight)
+    if (!empty($a['barangay']) && !empty($b['barangay'])) {
+        similar_text(strtolower($a['barangay']), strtolower($b['barangay']), $percent);
+        $score += ($percent / 100) * 30;
+        $total += 30;
+    }
+    
+    // Compare birthday (30% weight)
+    if (!empty($a['birthday']) && !empty($b['birthday'])) {
+        if ($a['birthday'] === $b['birthday']) {
+            $score += 30;
+        }
+        $total += 30;
+    }
+    
+    // If no comparisons were made, return 0
+    if ($total === 0) return 0;
+    
+    // Return percentage
+    return round(($score / $total) * 100);
 }
 
-function getDuplicateDetails($params) {
+/**
+ * Accept a record as clean
+ */
+function acceptAsClean($pdo) {
+    $id = $_POST['id'] ?? 0;
+    if (!$id) {
+        echo json_encode(['success' => false, 'message' => 'Record ID required']);
+        return;
+    }
+    
     try {
-        $id = $params['id'] ?? 0;
-        if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'No ID provided']);
-            return;
-        }
-        
-        $pdo = getConnection();
-        $stmt = $pdo->prepare("SELECT * FROM received_beneficiaries WHERE id = ?");
+        // Update the record status using is_accepted_clean column
+        $stmt = $pdo->prepare("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW() WHERE id = ?");
         $stmt->execute([$id]);
-        $beneficiary = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($beneficiary) {
-            $parsed = parseFullName($beneficiary['full_name'] ?? $beneficiary['name'] ?? '');
-            echo json_encode([
-                'success' => true,
-                'data' => [
-                    'id' => $beneficiary['id'],
-                    'full_name' => $beneficiary['full_name'] ?? $beneficiary['name'] ?? '',
-                    'lastname' => $parsed['lastname'],
-                    'firstname' => $parsed['firstname'],
-                    'middlename' => $parsed['middlename'],
-                    'barangay' => $beneficiary['barangay'] ?? '',
-                    'birthday' => $beneficiary['birthday'] ?? '',
-                    'batch_reference' => $beneficiary['batch_reference'] ?? 'N/A'
-                ]
-            ]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Beneficiary not found']);
-        }
+        echo json_encode(['success' => true, 'message' => 'Record accepted as clean']);
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 
-function deleteDuplicate($params) {
+/**
+ * Accept selected records as clean
+ */
+function acceptSelectedAsClean($pdo) {
+    $ids = $_POST['ids'] ?? [];
+    if (empty($ids)) {
+        echo json_encode(['success' => false, 'message' => 'No records selected']);
+        return;
+    }
+    
     try {
-        $id = $params['id'] ?? 0;
-        if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'No ID provided']);
-            return;
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $pdo->prepare("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW() WHERE id IN ($placeholders)");
+        $stmt->execute($ids);
+        
+        echo json_encode(['success' => true, 'message' => count($ids) . ' records accepted as clean']);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Accept all records as clean for a batch
+ */
+function acceptAllAsClean($pdo) {
+    $batchReference = $_POST['batch_reference'] ?? null;
+    
+    try {
+        if ($batchReference) {
+            $stmt = $pdo->prepare("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW() WHERE batch_reference = ?");
+            $stmt->execute([$batchReference]);
+        } else {
+            $stmt = $pdo->exec("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW()");
         }
         
-        $pdo = getConnection();
+        echo json_encode(['success' => true, 'message' => 'All records accepted as clean']);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Delete a single duplicate record
+ */
+function deleteDuplicate($pdo) {
+    $id = $_POST['id'] ?? 0;
+    if (!$id) {
+        echo json_encode(['success' => false, 'message' => 'Record ID required']);
+        return;
+    }
+    
+    try {
         $stmt = $pdo->prepare("DELETE FROM received_beneficiaries WHERE id = ?");
         $stmt->execute([$id]);
         
         echo json_encode(['success' => true, 'message' => 'Record deleted successfully']);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 
-function deleteDuplicates($params) {
+/**
+ * Delete multiple duplicate records
+ */
+function deleteDuplicates($pdo) {
+    $ids = $_POST['ids'] ?? [];
+    if (empty($ids)) {
+        echo json_encode(['success' => false, 'message' => 'No records selected']);
+        return;
+    }
+    
     try {
-        $ids = $params['ids'] ?? [];
-        if (empty($ids)) {
-            echo json_encode(['success' => false, 'message' => 'No IDs provided']);
-            return;
-        }
-        
-        $pdo = getConnection();
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $stmt = $pdo->prepare("DELETE FROM received_beneficiaries WHERE id IN ($placeholders)");
         $stmt->execute($ids);
         
-        echo json_encode(['success' => true, 'message' => count($ids) . ' record(s) deleted successfully']);
+        echo json_encode(['success' => true, 'message' => count($ids) . ' records deleted']);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 
-function deleteAllDuplicates($params) {
+/**
+ * Delete all duplicates
+ */
+function deleteAllDuplicates($pdo) {
+    $batchReference = $_POST['batch_reference'] ?? null;
+    
     try {
-        $batchReference = $params['batch_reference'] ?? null;
-        
-        $pdo = getConnection();
-        
         if ($batchReference) {
-            $stmt = $pdo->prepare("DELETE FROM received_beneficiaries WHERE batch_reference = ?");
+            $stmt = $pdo->prepare("DELETE FROM received_beneficiaries WHERE batch_reference = ? AND is_accepted_clean = 0");
             $stmt->execute([$batchReference]);
         } else {
-            $stmt = $pdo->query("SELECT DISTINCT batch_reference FROM received_beneficiaries ORDER BY id DESC LIMIT 1");
-            $latest = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($latest) {
-                $deleteStmt = $pdo->prepare("DELETE FROM received_beneficiaries WHERE batch_reference = ?");
-                $deleteStmt->execute([$latest['batch_reference']]);
-            }
+            $stmt = $pdo->exec("DELETE FROM received_beneficiaries WHERE is_accepted_clean = 0");
         }
         
-        echo json_encode(['success' => true, 'message' => 'All duplicates deleted successfully']);
+        echo json_encode(['success' => true, 'message' => 'All duplicate records deleted']);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 
-function getCleanRecords($params) {
+/**
+ * Get clean records
+ */
+function getCleanRecords($pdo) {
     try {
-        if (isset($_SESSION['last_duplicate_check']['clean_records']) && !empty($_SESSION['last_duplicate_check']['clean_records'])) {
-            echo json_encode([
-                'success' => true, 
-                'records' => $_SESSION['last_duplicate_check']['clean_records']
-            ]);
-        } else {
-            $pdo = getConnection();
-            $stmt = $pdo->query("SELECT * FROM received_beneficiaries ORDER BY id");
-            $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            $formattedRecords = [];
-            foreach ($records as $record) {
-                $formattedRecords[] = [
-                    'id' => $record['id'],
-                    'full_name' => $record['full_name'] ?? $record['name'] ?? '',
-                    'barangay' => $record['barangay'] ?? '',
-                    'birthday' => $record['birthday'] ?? '',
-                    'batch_reference' => $record['batch_reference'] ?? ''
-                ];
-            }
-            
-            echo json_encode(['success' => true, 'records' => $formattedRecords]);
-        }
+        $stmt = $pdo->query("SELECT id, name, barangay, birthday, batch_reference FROM received_beneficiaries WHERE is_accepted_clean = 1 ORDER BY name ASC");
+        $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode(['success' => true, 'records' => $records]);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 
-function deleteHistory($params) {
+/**
+ * Delete history record
+ */
+function deleteHistory($pdo) {
+    $id = $_POST['id'] ?? 0;
+    if (!$id) {
+        echo json_encode(['success' => false, 'message' => 'History ID required']);
+        return;
+    }
+    
     try {
-        $id = $params['id'] ?? 0;
-        if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'No ID provided']);
-            return;
-        }
-        
-        $pdo = getConnection();
         $stmt = $pdo->prepare("DELETE FROM check_history WHERE id = ?");
         $stmt->execute([$id]);
         
-        echo json_encode(['success' => true, 'message' => 'History record deleted successfully']);
+        echo json_encode(['success' => true, 'message' => 'History record deleted']);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 
-function acceptAsClean($params) {
+/**
+ * Get list of batches
+ */
+function getBatchList($pdo) {
     try {
-        $id = $params['id'] ?? 0;
-        if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'No ID provided']);
+        $stmt = $pdo->query("SELECT DISTINCT batch_reference FROM received_beneficiaries WHERE batch_reference IS NOT NULL ORDER BY batch_reference DESC");
+        $batches = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        echo json_encode(['success' => true, 'batches' => $batches]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Scan specific batch
+ */
+function scanSpecificBatch($pdo) {
+    $batchReference = $_POST['batch_reference'] ?? '';
+    if (!$batchReference) {
+        echo json_encode(['success' => false, 'message' => 'Batch reference required']);
+        return;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT id, name, barangay, birthday, batch_reference FROM received_beneficiaries WHERE batch_reference = ?");
+        $stmt->execute([$batchReference]);
+        $beneficiaries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($beneficiaries)) {
+            echo json_encode(['success' => false, 'message' => 'No beneficiaries found for this batch']);
             return;
         }
         
-        $pdo = getConnection();
+        // Scan duplicates within this batch
+        $duplicates = [];
+        $cleanRecords = [];
+        $processedIds = [];
         
-        try {
-            $columns = $pdo->query("SHOW COLUMNS FROM received_beneficiaries")->fetchAll(PDO::FETCH_COLUMN);
-            if (!in_array('is_accepted_clean', $columns)) {
-                $pdo->exec("ALTER TABLE received_beneficiaries ADD COLUMN is_accepted_clean TINYINT(1) DEFAULT 0");
+        foreach ($beneficiaries as $i => $beneficiary) {
+            if (in_array($beneficiary['id'], $processedIds)) continue;
+            
+            $group = [$beneficiary];
+            $processedIds[] = $beneficiary['id'];
+            
+            foreach ($beneficiaries as $j => $other) {
+                if ($i === $j || in_array($other['id'], $processedIds)) continue;
+                
+                $similarity = calculateSimilarity($beneficiary, $other);
+                
+                if ($similarity >= 85) {
+                    $group[] = $other;
+                    $processedIds[] = $other['id'];
+                }
             }
-            if (!in_array('accepted_date', $columns)) {
-                $pdo->exec("ALTER TABLE received_beneficiaries ADD COLUMN accepted_date DATETIME DEFAULT NULL");
+            
+            if (count($group) > 1) {
+                usort($group, function($a, $b) {
+                    return strcmp($a['name'], $b['name']);
+                });
+                
+                foreach ($group as $record) {
+                    $record['match_level'] = 95;
+                    $record['match_details'] = count($group) > 1 ? 'Original record (has high-confidence duplicates)' : 'Potential duplicate';
+                    $duplicates[] = $record;
+                }
+            } else {
+                $cleanRecords[] = $beneficiary;
             }
-        } catch (Exception $e) {
-            // Column might already exist
         }
         
-        $stmt = $pdo->prepare("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW() WHERE id = ?");
-        $stmt->execute([$id]);
+        echo json_encode([
+            'success' => true,
+            'total_checked' => count($beneficiaries),
+            'duplicates_found' => count($duplicates),
+            'clean_records' => count($cleanRecords),
+            'duplicates' => $duplicates,
+            'clean_records_data' => $cleanRecords,
+            'batch_reference' => $batchReference
+        ]);
         
-        echo json_encode(['success' => true, 'message' => 'Record accepted as clean and removed from duplicate list']);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-    }
-}
-
-function acceptSelectedAsClean($params) {
-    try {
-        $ids = $params['ids'] ?? [];
-        if (empty($ids)) {
-            echo json_encode(['success' => false, 'message' => 'No IDs provided']);
-            return;
-        }
-        
-        $pdo = getConnection();
-        
-        try {
-            $columns = $pdo->query("SHOW COLUMNS FROM received_beneficiaries")->fetchAll(PDO::FETCH_COLUMN);
-            if (!in_array('is_accepted_clean', $columns)) {
-                $pdo->exec("ALTER TABLE received_beneficiaries ADD COLUMN is_accepted_clean TINYINT(1) DEFAULT 0");
-            }
-            if (!in_array('accepted_date', $columns)) {
-                $pdo->exec("ALTER TABLE received_beneficiaries ADD COLUMN accepted_date DATETIME DEFAULT NULL");
-            }
-        } catch (Exception $e) {
-            // Column might already exist
-        }
-        
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $stmt = $pdo->prepare("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW() WHERE id IN ($placeholders)");
-        $stmt->execute($ids);
-        
-        echo json_encode(['success' => true, 'message' => count($ids) . ' record(s) accepted as clean']);
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-    }
-}
-
-function acceptAllAsClean($params) {
-    try {
-        $batchReference = $params['batch_reference'] ?? null;
-        
-        $pdo = getConnection();
-        
-        try {
-            $columns = $pdo->query("SHOW COLUMNS FROM received_beneficiaries")->fetchAll(PDO::FETCH_COLUMN);
-            if (!in_array('is_accepted_clean', $columns)) {
-                $pdo->exec("ALTER TABLE received_beneficiaries ADD COLUMN is_accepted_clean TINYINT(1) DEFAULT 0");
-            }
-            if (!in_array('accepted_date', $columns)) {
-                $pdo->exec("ALTER TABLE received_beneficiaries ADD COLUMN accepted_date DATETIME DEFAULT NULL");
-            }
-        } catch (Exception $e) {
-            // Column might already exist
-        }
-        
-        if ($batchReference) {
-            $stmt = $pdo->prepare("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW() WHERE batch_reference = ?");
-            $stmt->execute([$batchReference]);
-        } else {
-            $stmt = $pdo->query("SELECT DISTINCT batch_reference FROM received_beneficiaries ORDER BY id DESC LIMIT 1");
-            $latest = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($latest) {
-                $updateStmt = $pdo->prepare("UPDATE received_beneficiaries SET is_accepted_clean = 1, accepted_date = NOW() WHERE batch_reference = ?");
-                $updateStmt->execute([$latest['batch_reference']]);
-            }
-        }
-        
-        echo json_encode(['success' => true, 'message' => 'All records accepted as clean']);
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
     }
 }
 ?>
