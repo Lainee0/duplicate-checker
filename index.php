@@ -978,8 +978,6 @@ try {
                     <td class="px-6 py-4">${escapeHtml(item.sector || 'Regular')}</td>
                     <td class="px-6 py-4">${item.quantity || 0}</td>
                     <td class="px-6 py-4"><span class="px-3 py-1 bg-gray-200 text-gray-800 text-xs rounded-full">${escapeHtml(item.batch_reference || 'N/A')}</span></td>
-                    <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">${escapeHtml(item.status || 'pending')}</span></td>
-                    <td class="px-6 py-4">${item.distribution_date ? formatDate(item.distribution_date) : 'Not set'}</td>
                     <td class="px-6 py-4 text-center">
                         <button onclick="viewRiceDetails(${item.id})" class="text-blue-500 hover:text-blue-700 text-sm font-medium">View</button>
                         <button onclick="openUpdateStatusModal(${item.id}, '${item.status}', '${item.distribution_date || ''}')" class="text-green-500 hover:text-green-700 text-sm font-medium ml-2">Status</button>
