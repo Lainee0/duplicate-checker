@@ -194,7 +194,7 @@ try {
                     }
                     
                     // Set quantity (default 1 for rice distribution)
-                    $quantity = 1;
+                    $quantity = 10;
                     
                     $stmt->execute([
                         $fullName,
@@ -386,7 +386,7 @@ try {
                 } else {
                     // Use PhpSpreadsheet for Excel files
                     require_once 'vendor/autoload.php';
-                                        
+
                     $reader = IOFactory::createReaderForFile($filePath);
                     $spreadsheet = $reader->load($filePath);
                     $worksheet = $spreadsheet->getActiveSheet();
@@ -553,6 +553,84 @@ try {
             } catch (Exception $e) {
                 $response = ['success' => false, 'message' => 'Error comparing file: ' . $e->getMessage()];
             }
+            break;
+
+        case 'export_non_matches':
+            if (!isset($_POST['data'])) {
+                $response = ['success' => false, 'message' => 'No data to export'];
+                break;
+            }
+            
+            $data = json_decode($_POST['data'], true);
+            if (!$data || !isset($data['new_records_list']) || empty($data['new_records_list'])) {
+                $response = ['success' => false, 'message' => 'No new records to export'];
+                break;
+            }
+            
+            $newRecords = $data['new_records_list'];
+            $totalRecords = count($newRecords);
+            
+            // Check if exceeds 1500 limit
+            if ($totalRecords > 1500) {
+                $response = [
+                    'success' => false, 
+                    'message' => "Export limit exceeded. Found $totalRecords new records, but maximum is 1500. Please filter or reduce your list.",
+                    'total' => $totalRecords,
+                    'limit' => 1500
+                ];
+                break;
+            }
+            
+            // Generate CSV
+            $filename = 'new_rice_beneficiaries_' . date('Y-m-d_His') . '.csv';
+            
+            // Set headers for download
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+            
+            $output = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Write headers
+            fputcsv($output, [
+                'SN',
+                'FIRST NAME',
+                'MIDDLE NAME',
+                'LASTNAME',
+                'SUFFIX',
+                'BARANGAY',
+                'STATUS'
+            ]);
+            
+            // Write data
+            $sn = 1;
+            foreach ($newRecords as $record) {
+                // Extract first name, middle name, last name from full_name
+                $nameParts = explode(' ', $record['full_name']);
+                $firstName = isset($nameParts[0]) ? $nameParts[0] : '';
+                $lastName = isset($nameParts[count($nameParts) - 1]) ? $nameParts[count($nameParts) - 1] : '';
+                $middleName = '';
+                if (count($nameParts) > 2) {
+                    $middleName = implode(' ', array_slice($nameParts, 1, -1));
+                }
+                
+                fputcsv($output, [
+                    $sn++,
+                    $firstName,
+                    $middleName,
+                    $lastName,
+                    $record['suffix'] ?? '',
+                    $record['barangay'] ?? '',
+                    'New Record'
+                ]);
+            }
+            
+            fclose($output);
+            exit; // Important: stop execution after sending file
             break;
             
         default:

@@ -107,24 +107,24 @@ try {
                     </svg>
                     <span>Rice Beneficiaries</span>
                 </a>
-                <a class="flex items-center px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors cursor-pointer" data-page="check-duplicates" onclick="switchPage('check-duplicates'); checkDuplicatesFromReceived();">
+                <!-- <a class="flex items-center px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors cursor-pointer" data-page="check-duplicates" onclick="switchPage('check-duplicates'); checkDuplicatesFromReceived();">
                     <svg class="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V8h2v4z"/>
                     </svg>
                     <span>Check Duplicates</span>
-                </a>
+                </a> -->
                 <!-- <a class="flex items-center px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors cursor-pointer" data-page="results" onclick="switchPage('results')">
                     <svg class="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                     </svg>
                     <span>Results</span>
                 </a> -->
-                <a class="flex items-center px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors cursor-pointer" data-page="history" onclick="switchPage('history')">
+                <!-- <a class="flex items-center px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors cursor-pointer" data-page="history" onclick="switchPage('history')">
                     <svg class="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5.67-1.5 1.5-1.5 1.5.67 1.5 1.5zm-7 0c0 .83-.67 1.5-1.5 1.5S5 11.83 5 11s.67-1.5 1.5-1.5 1.5.67 1.5 1.5z"/>
                     </svg>
                     <span>History</span>
-                </a>
+                </a> -->
                 <!-- <a class="flex items-center px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors cursor-pointer" data-page="reports" onclick="switchPage('reports')">
                     <svg class="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2V17zm4 0h-2V7h2V17zm4 0h-2v-4h2V17z"/>
@@ -578,6 +578,64 @@ try {
                         <!-- Summary Cards -->
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="compareSummary">
                         </div>
+
+                        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                            <!-- <h4 class="text-md font-semibold text-gray-800">Comparison Results</h4> -->
+                            <div class="flex gap-2">
+                                <button onclick="exportNewRecords()" id="exportNewBtn" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors hidden">
+                                    <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Export New Records
+                                </button>
+                                <button onclick="exportAllNewRecords()" id="exportAllNewBtn" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors hidden">
+                                    <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                    Export All New
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="exportLimitWarning" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700" id="limitWarningMessage">
+                                        <strong>Export Limit:</strong> Maximum of 1500 records can be exported at once.
+                                        <span id="recordCountDisplay"></span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                            <h4 class="text-md font-semibold text-gray-800">Comparison Results</h4>
+                            <div class="flex gap-2 flex-wrap">
+                                <button onclick="exportNewRecords()" id="exportNewBtn" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors hidden">
+                                    <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Export New (Max 1500)
+                                </button>
+                                <button onclick="exportAllNewRecords()" id="exportAllNewBtn" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors hidden">
+                                    <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                    Export All New
+                                </button>
+                                <button onclick="exportSelectedNewRecords()" id="exportSelectedBtn" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-colors hidden">
+                                    <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                    </svg>
+                                    Export Selected
+                                </button>
+                            </div>
+                        </div> -->
                         
                         <!-- Results Tabs -->
                         <div class="border-b border-gray-200 mb-4">
@@ -614,7 +672,7 @@ try {
                                             <tr>
                                                 <th class="px-4 py-2 text-left font-medium text-gray-700">Name</th>
                                                 <th class="px-4 py-2 text-left font-medium text-gray-700">Barangay</th>
-                                                <th class="px-4 py-2 text-left font-medium text-gray-700">Existing ID</th>
+                                                <!-- <th class="px-4 py-2 text-left font-medium text-gray-700">Existing ID</th> -->
                                                 <th class="px-4 py-2 text-left font-medium text-gray-700">Action</th>
                                             </tr>
                                         </thead>
@@ -980,7 +1038,6 @@ try {
                     <td class="px-6 py-4"><span class="px-3 py-1 bg-gray-200 text-gray-800 text-xs rounded-full">${escapeHtml(item.batch_reference || 'N/A')}</span></td>
                     <td class="px-6 py-4 text-center">
                         <button onclick="viewRiceDetails(${item.id})" class="text-blue-500 hover:text-blue-700 text-sm font-medium">View</button>
-                        <button onclick="openUpdateStatusModal(${item.id}, '${item.status}', '${item.distribution_date || ''}')" class="text-green-500 hover:text-green-700 text-sm font-medium ml-2">Status</button>
                         <button onclick="deleteRiceBeneficiary(${item.id})" class="text-red-500 hover:text-red-700 text-sm font-medium ml-2">Delete</button>
                     </td>
                 </tr>
@@ -1772,18 +1829,17 @@ try {
         if (!tbody) return;
         
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">No records found</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${type === 'new' ? 5 : 4}" class="px-4 py-4 text-center text-gray-500">No records found</td></tr>`;
             return;
         }
         
         let html = '';
-        data.forEach(function(item) {
+        data.forEach(function(item, index) {
             if (type === 'exact') {
                 html += `
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                         <td class="px-4 py-2">${escapeHtml(item.full_name)}</td>
                         <td class="px-4 py-2">${escapeHtml(item.barangay || 'N/A')}</td>
-                        <td class="px-4 py-2"><span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">ID: ${item.existing_id || 'N/A'}</span></td>
                         <td class="px-4 py-2">
                             <button onclick="viewExistingRecord(${item.existing_id})" class="text-blue-500 hover:text-blue-700 text-sm">View</button>
                         </td>
@@ -1795,7 +1851,7 @@ try {
                         <td class="px-4 py-2">${escapeHtml(item.full_name)}</td>
                         <td class="px-4 py-2"><span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">${escapeHtml(item.matched_with || 'Similar name found')}</span></td>
                         <td class="px-4 py-2">
-                            <button onclick="importAsNew('${escapeHtml(item.full_name)}', '${escapeHtml(item.barangay || '')}')" class="text-green-500 hover:text-green-700 text-sm mr-2">Import as New</button>
+                            <button onclick="importAsNew('${escapeHtml(item.full_name)}', '${escapeHtml(item.barangay || '')}')" class="text-green-500 hover:text-green-700 text-sm mr-2">Import</button>
                             <button onclick="skipRecord('${escapeHtml(item.full_name)}')" class="text-gray-500 hover:text-gray-700 text-sm">Skip</button>
                         </td>
                     </tr>
@@ -1803,6 +1859,9 @@ try {
             } else if (type === 'new') {
                 html += `
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="px-4 py-2">
+                            <input type="checkbox" class="new-record-checkbox" data-name="${escapeHtml(item.full_name)}" data-barangay="${escapeHtml(item.barangay || '')}" ${index < 1500 ? 'checked' : ''}>
+                        </td>
                         <td class="px-4 py-2"><span class="font-medium">${escapeHtml(item.full_name)}</span></td>
                         <td class="px-4 py-2">${escapeHtml(item.barangay || 'N/A')}</td>
                         <td class="px-4 py-2">
@@ -1824,6 +1883,26 @@ try {
             }
         });
         tbody.innerHTML = html;
+        
+        // Add select all checkbox for new records
+        if (type === 'new' && data.length > 0) {
+            const table = tbody.closest('table');
+            const thead = table.querySelector('thead');
+            if (thead) {
+                const firstTh = thead.querySelector('th:first-child');
+                if (firstTh && !firstTh.querySelector('input[type="checkbox"]')) {
+                    firstTh.innerHTML = `<input type="checkbox" id="selectAllNew" onchange="toggleAllNewRecords()" ${data.length <= 1500 ? 'checked' : ''}>`;
+                }
+            }
+        }
+    }
+
+    // Toggle all new records checkboxes
+    function toggleAllNewRecords() {
+        const isChecked = document.getElementById('selectAllNew')?.checked || false;
+        document.querySelectorAll('.new-record-checkbox').forEach(cb => {
+            cb.checked = isChecked;
+        });
     }
 
     // View existing record
@@ -1863,6 +1942,336 @@ try {
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire('Skipped', `${fullName} has been skipped`, 'info');
+            }
+        });
+    }
+
+    // Store comparison data globally
+    let lastCompareData = null;
+
+    // Update displayCompareResults function
+    function displayCompareResults(data) {
+        // Store data globally
+        lastCompareData = data;
+        
+        // Update summary
+        const summaryHtml = `
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                <p class="text-2xl font-bold text-blue-700">${data.total_imported}</p>
+                <p class="text-sm text-blue-600">Total Imported</p>
+            </div>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                <p class="text-2xl font-bold text-yellow-700">${data.exact_matches}</p>
+                <p class="text-sm text-yellow-600">Exact Matches</p>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                <p class="text-2xl font-bold text-orange-700">${data.partial_matches}</p>
+                <p class="text-sm text-orange-600">Partial Matches</p>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                <p class="text-2xl font-bold text-green-700">${data.new_records}</p>
+                <p class="text-sm text-green-600">New Records</p>
+            </div>
+        `;
+        document.getElementById('compareSummary').innerHTML = summaryHtml;
+        
+        // Update counts
+        document.getElementById('exactCount').textContent = data.exact_matches;
+        document.getElementById('partialCount').textContent = data.partial_matches;
+        document.getElementById('newCount').textContent = data.new_records;
+        document.getElementById('duplicateCount').textContent = data.duplicates_in_file || 0;
+        
+        // Show/hide export buttons based on new records count
+        const exportBtn = document.getElementById('exportNewBtn');
+        const exportAllBtn = document.getElementById('exportAllNewBtn');
+        const warningDiv = document.getElementById('exportLimitWarning');
+        const recordDisplay = document.getElementById('recordCountDisplay');
+        
+        if (data.new_records > 0) {
+            exportBtn.classList.remove('hidden');
+            
+            if (data.new_records <= 1500) {
+                exportAllBtn.classList.remove('hidden');
+                warningDiv.classList.add('hidden');
+            } else {
+                exportAllBtn.classList.add('hidden');
+                warningDiv.classList.remove('hidden');
+                recordDisplay.textContent = `Found ${data.new_records} new records. Maximum: 1500.`;
+            }
+        } else {
+            exportBtn.classList.add('hidden');
+            exportAllBtn.classList.add('hidden');
+            warningDiv.classList.add('hidden');
+        }
+        
+        // Render tables
+        renderCompareTable('exactMatchBody', data.exact_match_list || [], 'exact');
+        renderCompareTable('partialMatchBody', data.partial_match_list || [], 'partial');
+        renderCompareTable('newRecordsBody', data.new_records_list || [], 'new');
+        renderCompareTable('duplicatesBody', data.duplicate_list || [], 'duplicate');
+        
+        // Show results
+        document.getElementById('riceCompareResults').classList.remove('hidden');
+        
+        // Switch to first tab
+        switchCompareTab('exact');
+    }
+
+    // Export new records (first 1500)
+    function exportNewRecords() {
+        if (!lastCompareData || !lastCompareData.new_records_list || lastCompareData.new_records_list.length === 0) {
+            Swal.fire('Info', 'No new records to export', 'info');
+            return;
+        }
+        
+        const newRecords = lastCompareData.new_records_list;
+        const totalRecords = newRecords.length;
+        
+        if (totalRecords > 1500) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Too Many Records',
+                html: `
+                    <p>You have <strong>${totalRecords}</strong> new records, but the export limit is <strong>1500</strong>.</p>
+                    <p class="mt-2 text-sm text-gray-600">Please reduce your list or use the "Export All New" button to export in batches.</p>
+                `,
+                confirmButtonText: 'Got it'
+            });
+            return;
+        }
+        
+        // Show loading
+        Swal.fire({
+            title: 'Preparing Export...',
+            text: `Exporting ${totalRecords} new records`,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Send request to export
+        $.ajax({
+            url: 'rice_api.php',
+            type: 'POST',
+            data: {
+                action: 'export_non_matches',
+                data: JSON.stringify({
+                    new_records_list: newRecords
+                })
+            },
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function(response) {
+                Swal.close();
+                
+                // Create download link
+                const blob = new Blob([response], { type: 'text/csv;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `new_rice_beneficiaries_${new Date().toISOString().slice(0,19).replace(/[:-]/g, '')}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Export Successful!',
+                    html: `
+                        <p>Exported <strong>${totalRecords}</strong> new records.</p>
+                        <p class="text-sm text-gray-600 mt-2">File format: CSV (compatible with Excel)</p>
+                    `
+                });
+            },
+            error: function(xhr, status, error) {
+                Swal.fire('Error', 'Failed to export: ' + error, 'error');
+            }
+        });
+    }
+
+    // Export all new records (with batch handling for >1500)
+    function exportAllNewRecords() {
+        if (!lastCompareData || !lastCompareData.new_records_list || lastCompareData.new_records_list.length === 0) {
+            Swal.fire('Info', 'No new records to export', 'info');
+            return;
+        }
+        
+        const newRecords = lastCompareData.new_records_list;
+        const totalRecords = newRecords.length;
+        const LIMIT = 1500;
+        
+        if (totalRecords <= LIMIT) {
+            // Use the regular export
+            exportNewRecords();
+            return;
+        }
+        
+        // Handle large exports with batch processing
+        const batchCount = Math.ceil(totalRecords / LIMIT);
+        
+        Swal.fire({
+            icon: 'info',
+            title: 'Large Export',
+            html: `
+                <p>You have <strong>${totalRecords}</strong> new records.</p>
+                <p class="mt-2">This will be exported in <strong>${batchCount}</strong> batch(es) of ${LIMIT} records each.</p>
+                <p class="mt-2 text-sm text-gray-600">Would you like to proceed?</p>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Yes, export all',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                exportLargeBatch(newRecords, LIMIT);
+            }
+        });
+    }
+
+    // Export large batch in multiple files
+    function exportLargeBatch(records, limit) {
+        const totalRecords = records.length;
+        const batchCount = Math.ceil(totalRecords / limit);
+        let currentBatch = 0;
+        let downloadedCount = 0;
+        
+        Swal.fire({
+            title: 'Exporting...',
+            html: `
+                <p>Processing batch <span id="batchProgress">1</span> of ${batchCount}</p>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                    <div id="batchProgressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <p class="mt-2 text-sm text-gray-600" id="recordsProcessed">0 of ${totalRecords} records</p>
+            `,
+            allowOutsideClick: false,
+            didOpen: () => {
+                processNextBatch();
+            }
+        });
+        
+        function processNextBatch() {
+            if (currentBatch >= batchCount) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Export Complete!',
+                    html: `
+                        <p>Exported <strong>${totalRecords}</strong> records in <strong>${batchCount}</strong> file(s).</p>
+                        <p class="text-sm text-gray-600 mt-2">All files have been downloaded.</p>
+                    `
+                });
+                return;
+            }
+            
+            const start = currentBatch * limit;
+            const end = Math.min(start + limit, totalRecords);
+            const batchRecords = records.slice(start, end);
+            
+            // Update progress
+            document.getElementById('batchProgress').textContent = currentBatch + 1;
+            document.getElementById('recordsProcessed').textContent = `${downloadedCount + batchRecords.length} of ${totalRecords} records`;
+            const progress = ((currentBatch + 1) / batchCount) * 100;
+            document.getElementById('batchProgressBar').style.width = `${progress}%`;
+            
+            // Export this batch
+            $.ajax({
+                url: 'rice_api.php',
+                type: 'POST',
+                data: {
+                    action: 'export_non_matches',
+                    data: JSON.stringify({
+                        new_records_list: batchRecords
+                    })
+                },
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function(response) {
+                    // Create download link
+                    const blob = new Blob([response], { type: 'text/csv;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `new_rice_beneficiaries_batch_${currentBatch + 1}_of_${batchCount}_${new Date().toISOString().slice(0,19).replace(/[:-]/g, '')}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    
+                    downloadedCount += batchRecords.length;
+                    currentBatch++;
+                    
+                    // Process next batch after a short delay
+                    setTimeout(processNextBatch, 500);
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire('Error', `Failed to export batch ${currentBatch + 1}: ${error}`, 'error');
+                }
+            });
+        }
+    }
+
+    // Export only selected new records (from the table)
+    function exportSelectedNewRecords() {
+        const selectedCheckboxes = document.querySelectorAll('#newRecordsBody input[type="checkbox"]:checked');
+        if (selectedCheckboxes.length === 0) {
+            Swal.fire('Info', 'Please select at least one record to export', 'info');
+            return;
+        }
+        
+        const selectedNames = [];
+        selectedCheckboxes.forEach(cb => {
+            const name = cb.getAttribute('data-name');
+            const barangay = cb.getAttribute('data-barangay');
+            selectedNames.push({
+                full_name: name,
+                barangay: barangay
+            });
+        });
+        
+        if (selectedNames.length > 1500) {
+            Swal.fire('Warning', `You selected ${selectedNames.length} records. Maximum export is 1500.`, 'warning');
+            return;
+        }
+        
+        // Export selected records
+        Swal.fire({
+            title: 'Exporting...',
+            text: `Exporting ${selectedNames.length} selected records`,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        $.ajax({
+            url: 'rice_api.php',
+            type: 'POST',
+            data: {
+                action: 'export_non_matches',
+                data: JSON.stringify({
+                    new_records_list: selectedNames
+                })
+            },
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function(response) {
+                Swal.close();
+                
+                const blob = new Blob([response], { type: 'text/csv;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `selected_new_records_${new Date().toISOString().slice(0,19).replace(/[:-]/g, '')}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                
+                Swal.fire('Success!', `Exported ${selectedNames.length} selected records`, 'success');
+            },
+            error: function(xhr, status, error) {
+                Swal.fire('Error', 'Failed to export: ' + error, 'error');
             }
         });
     }
