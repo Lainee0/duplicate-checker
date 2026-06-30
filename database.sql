@@ -55,3 +55,42 @@ VALUES ('admin', 'admin@duplichecker.local', '$2y$10$Y9jH8Kqj2L5mN3P0X6V2e.8Q4F1
 CREATE INDEX idx_name ON received_beneficiaries(name);
 CREATE INDEX idx_barangay ON received_beneficiaries(barangay);
 CREATE INDEX idx_birthday ON received_beneficiaries(birthday);
+
+-- Table structure for rice_beneficiaries
+CREATE TABLE `rice_beneficiaries` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `full_name` varchar(255) NOT NULL,
+  `barangay` varchar(100) DEFAULT NULL,
+  `birthday` date DEFAULT NULL,
+  `batch_reference` varchar(100) DEFAULT NULL,
+  `rice_type` varchar(50) DEFAULT 'Regular',
+  `quantity` decimal(10,2) DEFAULT 0.00,
+  `distribution_date` date DEFAULT NULL,
+  `status` enum('pending','distributed','cancelled') DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_rice_batch` (`batch_reference`),
+  KEY `idx_rice_barangay` (`barangay`),
+  KEY `idx_rice_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table for rice distribution history
+CREATE TABLE `rice_distribution_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `batch_reference` varchar(100) NOT NULL,
+  `total_beneficiaries` int(11) DEFAULT 0,
+  `total_rice_distributed` decimal(10,2) DEFAULT 0.00,
+  `distribution_date` date DEFAULT NULL,
+  `notes` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_rice_dist_batch` (`batch_reference`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `rice_beneficiaries` 
+ADD COLUMN `sector` varchar(255) DEFAULT NULL AFTER `status`;
+
+ALTER TABLE `rice_distribution_history` 
+ADD COLUMN `barangay_stats` json DEFAULT NULL,
+ADD COLUMN `sector_stats` json DEFAULT NULL;

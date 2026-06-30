@@ -3,7 +3,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'dupli-db');
 define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_PASS', 'coding101');
 
 // Create connection
 function getConnection() {
