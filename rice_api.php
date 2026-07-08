@@ -603,7 +603,7 @@ try {
                 'LASTNAME',
                 'SUFFIX',
                 'BARANGAY',
-                'STATUS'
+                // 'STATUS'
             ]);
             
             // Write data
@@ -625,7 +625,7 @@ try {
                     $lastName,
                     $record['suffix'] ?? '',
                     $record['barangay'] ?? '',
-                    'New Record'
+                    // 'New Record'
                 ]);
             }
             

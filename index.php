@@ -1842,6 +1842,7 @@ try {
                         <td class="px-4 py-2">${escapeHtml(item.barangay || 'N/A')}</td>
                         <td class="px-4 py-2">
                             <button onclick="viewExistingRecord(${item.existing_id})" class="text-blue-500 hover:text-blue-700 text-sm">View</button>
+                            <button onclick="deleteExistingRecord(${item.existing_id})" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
                         </td>
                     </tr>
                 `;
