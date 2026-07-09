@@ -1911,6 +1911,43 @@ try {
         viewRiceDetails(id);
     }
 
+    // Delete existing record from the database
+    function deleteExistingRecord(id) {
+        Swal.fire({
+            title: 'Delete Record?',
+            text: 'This record will be removed from the rice beneficiaries list.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#3b82f6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: 'rice_api.php',
+                    type: 'POST',
+                    data: {
+                        action: 'delete_rice_beneficiary',
+                        id: id
+                    },
+                    success: function(response) {
+                        Swal.fire('Success', response.message || 'Record deleted successfully', 'success');
+                        loadRiceBeneficiaries();
+
+                        if (lastCompareData && lastCompareData.exact_match_list) {
+                            lastCompareData.exact_match_list = lastCompareData.exact_match_list.filter(item => item.existing_id !== id);
+                            lastCompareData.exact_matches = Math.max(0, lastCompareData.exact_matches - 1);
+                            displayCompareResults(lastCompareData);
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'Failed to delete the record.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
     // Import as new record
     function importAsNew(fullName, barangay) {
         Swal.fire({
